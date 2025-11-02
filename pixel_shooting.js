@@ -11,9 +11,10 @@ function PixelClassicShooter() {
   // ----- UI state -----
   const [lives, setLives] = useState(10);
   const [level, setLevel] = useState(1);
-  const [running, setRunning] = useState(true);
+  const [running, setRunning] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
+  const [showLevelSelect, setShowLevelSelect] = useState(true);
   const [availableUpgrades, setAvailableUpgrades] = useState([]);
   const [hitFlash, setHitFlash] = useState(false);
 
@@ -394,11 +395,13 @@ function PixelClassicShooter() {
       // shooting
       st.player.cooldown -= dt / 1000;
       if ((keysRef.current[" "] || keysRef.current["Space"]) && st.player.cooldown <= 0) {
+        // 기본 발사
+        st.bullets.push({ x: p.x + p.w / 2 - 1, y: p.y - 4, w: 2, h: 4, dy: -120 });
+        
+        // 더블파이어가 활성화된 경우 추가 2발 발사
         if (playerStatsRef.current.doubleFire) {
-          st.bullets.push({ x: p.x + p.w / 2 - 4, y: p.y - 4, w: 2, h: 4, dy: -120 });
-          st.bullets.push({ x: p.x + p.w / 2 + 2, y: p.y - 4, w: 2, h: 4, dy: -120 });
-        } else {
-          st.bullets.push({ x: p.x + p.w / 2 - 1, y: p.y - 4, w: 2, h: 4, dy: -120 });
+          st.bullets.push({ x: p.x + p.w / 2 - 4, y: p.y - 4, w: 2, h: 4, dy: -120 }); // 왼쪽 추가 총알
+          st.bullets.push({ x: p.x + p.w / 2 + 2, y: p.y - 4, w: 2, h: 4, dy: -120 }); // 오른쪽 추가 총알
         }
         st.player.cooldown = playerStatsRef.current.shootCooldown;
       }
@@ -608,6 +611,40 @@ if (reverseTriggered) {
     applyUpgrade(u);
   }
 
+  // ----- start game with selected level -----
+  function startGameAtLevel(selectedLevel) {
+    setLives(10); livesRef.current = 10;
+    setLevel(selectedLevel); levelRef.current = selectedLevel;
+    setGameOver(false); gameOverRef.current = false;
+    setRunning(true); runningRef.current = true;
+    setShowUpgrade(false); showUpgradeRef.current = false;
+    setShowLevelSelect(false);
+    setPlayerStats({ moveSpeed: 50, shootCooldown: 0.3, shield: 0 }); 
+    playerStatsRef.current = { moveSpeed: 50, shootCooldown: 0.3, shield: 0 };
+    setBarrierExtraCount(0); barrierExtraCountRef.current = 0;
+    setBarrierHPBonus(0); barrierHPBonusRef.current = 0;
+
+    // 선택한 레벨에 따른 초기 능력치 보너스 부여
+    const bonusUpgrades = Math.floor((selectedLevel - 1) / 5);
+    if (bonusUpgrades > 0) {
+      setPlayerStats(ps => {
+        const newStats = { 
+          moveSpeed: ps.moveSpeed + (bonusUpgrades * 10),
+          shootCooldown: Math.max(0.1, ps.shootCooldown - (bonusUpgrades * 0.05)),
+          shield: bonusUpgrades
+        };
+        playerStatsRef.current = newStats;
+        return newStats;
+      });
+    }
+
+    gameRef.current = {
+      player: { x: 76, y: 400, w: 10, h: 8, cooldown: 0 },
+      bullets: [], enemyBullets: [], enemies: [], barriers: [], lastEnemyShotTime: 0, nextWaveScheduled: false
+    };
+    spawnWave(selectedLevel);
+  }
+
   // ----- render UI -----
   return (
     <div style={{ textAlign: "center", color: "#ddd", fontFamily: "monospace", paddingTop: 8 }}>
@@ -615,17 +652,58 @@ if (reverseTriggered) {
         <canvas ref={canvasRef} style={{ imageRendering: "pixelated", width: 320, height: 480, display: "block" }} />
       </div>
 
-      <div style={{ marginTop: 8 }}>
-        <div style={{ fontSize: 13 }}>
-          Lives: {lives} &nbsp;•&nbsp; Level: {level}
+      {showLevelSelect ? (
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          background: "#222",
+          padding: 20,
+          borderRadius: 10,
+          border: "2px solid #555",
+          zIndex: 100
+        }}>
+          <h2 style={{ margin: "0 0 20px 0", color: "#fff" }}>레벨 선택</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 20 }}>
+            {[...Array(50)].map((_, i) => (
+              <button
+                key={i}
+                onClick={() => startGameAtLevel(i + 1)}
+                style={{
+                  padding: "8px",
+                  background: "#333",
+                  color: "#fff",
+                  border: "1px solid #666",
+                  borderRadius: "4px",
+                  cursor: "pointer"
+                }}
+              >
+                {i + 1}
+              </button>
+            ))}
+          </div>
+          <div style={{ fontSize: 12, color: "#999" }}>
+            * 높은 레벨 선택 시 초기 능력치 보너스가 주어집니다
+          </div>
         </div>
-        <div style={{ marginTop: 6 }}>
-          <button onClick={() => { setRunning(r => { runningRef.current = !r; return !r; }); }}>
-            {runningRef.current ? "Pause" : "Resume"}
-          </button>
-          <button onClick={restartGame} style={{ marginLeft: 8 }}>Restart</button>
+      ) : (
+        <div style={{ marginTop: 8 }}>
+          <div style={{ fontSize: 13 }}>
+            Lives: {lives} &nbsp;•&nbsp; Level: {level}
+          </div>
+          <div style={{ marginTop: 6 }}>
+            <button onClick={() => { setRunning(r => { runningRef.current = !r; return !r; }); }}>
+              {runningRef.current ? "Pause" : "Resume"}
+            </button>
+            <button onClick={() => {
+              setShowLevelSelect(true);
+              setRunning(false);
+              runningRef.current = false;
+            }} style={{ marginLeft: 8 }}>Level Select</button>
+          </div>
         </div>
-      </div>
+      )}
 
       {showUpgrade && (
         <div style={{
