@@ -56,7 +56,7 @@ function PixelClassicShooter() {
   const keysRef = useRef({});
 
   const gameRef = useRef({
-    player: { x: 76, y: 400, w: 8, h: 6, cooldown: 0 },
+    player: { x: 76, y: 400, w: 10, h: 8, cooldown: 0 },
     bullets: [],
     enemyBullets: [],
     enemies: [],
@@ -276,7 +276,7 @@ function PixelClassicShooter() {
     setBarrierHPBonus(0); barrierHPBonusRef.current = 0;
 
     gameRef.current = {
-      player: { x: 76, y: 400, w: 8, h: 6, cooldown: 0 },
+      player: { x: 76, y: 400, w: 10, h: 8, cooldown: 0 },
       bullets: [], enemyBullets: [], enemies: [], barriers: [], lastEnemyShotTime: 0, nextWaveScheduled: false
     };
     spawnWave(1);
@@ -299,14 +299,30 @@ function PixelClassicShooter() {
       ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, PIXEL_W, PIXEL_H);
 
-      // player
+      // player (F16 style)
       const p = st.player;
       
+      // Base color
       ctx.fillStyle = hitFlashRef.current ? "#ff3333" : "#66d9ff";
-      ctx.fillRect(p.x, p.y, p.w, p.h);
+      
+      // Main body
+      ctx.fillRect(p.x + 3, p.y, p.w - 6, p.h + 2); // Fuselage
+      
+      // Wings
+      ctx.fillRect(p.x, p.y + 3, p.w, 2); // Main wings
+      ctx.fillRect(p.x + 2, p.y + 1, 4, 1); // Small front wings
+      
+      // Tail
+      ctx.fillRect(p.x + 3, p.y + 6, 2, 2); // Vertical stabilizer
+      
+      // Cockpit
+      ctx.fillStyle = hitFlashRef.current ? "#ff9999" : "#99ffff";
+      ctx.fillRect(p.x + 3, p.y + 1, 2, 2);
+      
+      // Shield effect
       if (playerStatsRef.current.shield > 0) {
         ctx.strokeStyle = "#00ffff";
-        ctx.strokeRect(p.x - 1, p.y - 1, p.w + 2, p.h + 2);
+        ctx.strokeRect(p.x - 1, p.y - 1, p.w + 2, p.h + 4);
       }
 
       // bullets
