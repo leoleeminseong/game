@@ -2,7 +2,17 @@ const bossSpecialUpgrades = [
   "megaAttack",   // 공격력 +3
   "superShield",  // 방어막 +5
   "doubleFire",   // 두 발씩 발사
+  "diagonalShot", // 대각선 방향으로 발사
   ];
+
+// 보스 스킬을 플레이어 업그레이드로 변환
+const bossSkillToUpgrade = {
+  "tripleShot": "playerTripleShot",   // 3발 발사
+  "rapidFire": "playerRapidFire",     // 빠른 연사
+  "teleport": "playerTeleport",       // 순간이동
+  "regen": "playerRegen",             // 체력 회복
+  "final": "playerFinalForm"          // 강화 모드
+};
 
 
 const { useRef, useEffect, useState } = React;
@@ -70,13 +80,18 @@ function PixelClassicShooter() {
   const PIXEL_H = 480;
   const BARRIER_Y = 380;
 
-  // boss definitions (10,20,30,40,50)
+  // boss definitions (10,20,30,40,50,60,70,80,90,100)
   const bossDefinitions = [
-    { name: "Iron Drone", skill: "tripleShot" },
-    { name: "Plasma Reaper", skill: "rapidFire" },
-    { name: "Shadow Warden", skill: "teleport" },
-    { name: "Omega Core", skill: "regen" },
-    { name: "Void Overlord", skill: "final" },
+    { name: "Iron Drone", skill: "tripleShot" },      // 10
+    { name: "Plasma Reaper", skill: "rapidFire" },    // 20
+    { name: "Shadow Warden", skill: "teleport" },     // 30
+    { name: "Omega Core", skill: "regen" },           // 40
+    { name: "Void Overlord", skill: "final" },        // 50
+    { name: "Storm Striker", skill: "lightning" },     // 60
+    { name: "Time Twister", skill: "timeWarp" },      // 70
+    { name: "Star Destroyer", skill: "starfall" },     // 80
+    { name: "Chaos Emperor", skill: "chaos" },         // 90
+    { name: "ETERNAL NEMESIS", skill: "ultimate" }     // 100: 최종 보스
   ];
 
   // ----- spawn wave (reads barrier refs) -----
@@ -84,13 +99,14 @@ function PixelClassicShooter() {
     const enemies = [];
     const isBossWave = levelNum % 10 === 0;
     if (isBossWave) {
-      const idx = Math.max(0, Math.min(bossDefinitions.length - 1, Math.floor(levelNum / 10) - 1));
+      const idx = Math.max(0, Math.min(bossDefinitions.length - 1, (Math.floor(levelNum / 10) - 1) % bossDefinitions.length));
       const def = bossDefinitions[idx];
+      const bossHeight = 18; // 보스의 높이
       enemies.push({
         x: PIXEL_W / 2 - 15,
-        y: 13,
+        y: 45 + bossHeight, // 보스 높이를 더 아래로 조정
         w: 30,
-        h: 18,
+        h: bossHeight,
         dir: 1,
         hp: 30 + levelNum * 2,
         baseHp: 30 + levelNum * 2,
@@ -245,7 +261,52 @@ function PixelClassicShooter() {
       // 더블샷 모드 활성화
       playerStatsRef.current.doubleFire = true;
     }
-
+    if (type === "diagonalShot") {
+      // 대각선 공격 모드 활성화
+      playerStatsRef.current.diagonalShot = true;
+    }
+    
+    // 보스 스킬 업그레이드
+    if (type === "playerTripleShot") {
+      playerStatsRef.current.tripleShot = true;
+    }
+    if (type === "playerRapidFire") {
+      setPlayerStats(p => {
+        const nv = { ...p, shootCooldown: Math.max(0.05, p.shootCooldown * 0.5) };
+        playerStatsRef.current = nv;
+        return nv;
+      });
+    }
+    if (type === "playerTeleport") {
+      playerStatsRef.current.canTeleport = true;
+      playerStatsRef.current.teleportCooldown = 0;
+    }
+    if (type === "playerRegen") {
+      playerStatsRef.current.regenEnabled = true;
+      // 3초마다 체력 1 회복
+      setInterval(() => {
+        if (playerStatsRef.current.regenEnabled && livesRef.current < 10) {
+          setLives(l => {
+            const nv = Math.min(10, l + 1);
+            livesRef.current = nv;
+            return nv;
+          });
+        }
+      }, 3000);
+    }
+    if (type === "playerFinalForm") {
+      // 최종 형태: 모든 능력 강화
+      setPlayerStats(p => {
+        const nv = {
+          ...p,
+          moveSpeed: p.moveSpeed * 1.5,
+          shootCooldown: Math.max(0.05, p.shootCooldown * 0.7),
+          shield: p.shield + 3
+        };
+        playerStatsRef.current = nv;
+        return nv;
+      });
+    }
 
     spawnWave(levelRef.current);
   }
@@ -332,19 +393,153 @@ function PixelClassicShooter() {
         ctx.fillRect(b.x, b.y, b.w, b.h);
       }
       for (const b of st.enemyBullets) {
-        ctx.fillStyle = "#ff6666";
+        ctx.fillStyle = b.color || "#ff6666";
         ctx.fillRect(b.x, b.y, b.w, b.h);
       }
 
       // enemies
       for (const e of st.enemies) {
         if (e.boss) {
-          ctx.fillStyle = "#ff00ff";
-          ctx.fillRect(e.x, e.y, e.w, e.h);
-          ctx.fillStyle = "#fff";
-          ctx.font = "7px monospace";
-          ctx.fillText(e.name, e.x - 5, e.y - 6);
-          ctx.fillText(`HP:${Math.ceil(e.hp)}`, e.x, e.y - 15);
+          // 보스 몸체
+          if (e.skill === "ultimate") {
+            // 최종 보스 특별 렌더링
+            const gradient = ctx.createLinearGradient(e.x, e.y, e.x + e.w, e.y + e.h);
+            gradient.addColorStop(0, "#ff0000");
+            gradient.addColorStop(0.5, "#ff00ff");
+            gradient.addColorStop(1, "#0000ff");
+            ctx.fillStyle = gradient;
+            
+            // 보스 주위에 에너지 오라 효과
+            ctx.save();
+            ctx.globalAlpha = 0.3;
+            for (let i = 0; i < 3; i++) {
+              const pulseScale = 1 + Math.sin(performance.now() / 200) * 0.1;
+              ctx.fillRect(
+                e.x - i * 2 * pulseScale, 
+                e.y - i * 2 * pulseScale, 
+                e.w + i * 4 * pulseScale, 
+                e.h + i * 4 * pulseScale
+              );
+            }
+            ctx.restore();
+            
+            // 보스 주위에 전기 효과
+            ctx.save();
+            ctx.strokeStyle = "#00ffff";
+            ctx.lineWidth = 1;
+            const time = performance.now() / 1000;
+            for (let i = 0; i < 8; i++) {
+              const angle = (time + i * Math.PI / 4) % (Math.PI * 2);
+              ctx.beginPath();
+              ctx.moveTo(
+                e.x + e.w/2 + Math.cos(angle) * (e.w/2 + 5),
+                e.y + e.h/2 + Math.sin(angle) * (e.h/2 + 5)
+              );
+              ctx.lineTo(
+                e.x + e.w/2 + Math.cos(angle) * (e.w/2 + 15),
+                e.y + e.h/2 + Math.sin(angle) * (e.h/2 + 15)
+              );
+              ctx.stroke();
+            }
+            ctx.restore();
+            
+            // 보스 본체
+            ctx.fillStyle = gradient;
+            ctx.fillRect(e.x, e.y, e.w, e.h);
+          } else {
+            ctx.fillStyle = "#ff00ff";
+            ctx.fillRect(e.x, e.y, e.w, e.h);
+          }
+
+          // 체력바 배경 (최종 보스는 더 크고 화려하게)
+          const healthBarWidth = e.skill === "ultimate" ? 60 : 40;
+          const healthBarHeight = e.skill === "ultimate" ? 6 : 4;
+          const healthBarY = e.y - (e.skill === "ultimate" ? 20 : 12);
+          
+          // 체력바 그림자 효과
+          if (e.skill === "ultimate") {
+            ctx.shadowColor = "#ff0000";
+            ctx.shadowBlur = 10;
+          }
+          
+          ctx.fillStyle = "#333";
+          ctx.fillRect(
+            e.x + e.w/2 - healthBarWidth/2,
+            healthBarY,
+            healthBarWidth,
+            healthBarHeight
+          );
+
+          // 보스 이름 (보스 아래에 표시)
+          ctx.shadowBlur = 0; // 그림자 효과 초기화
+          ctx.fillStyle = e.skill === "ultimate" ? "#ffff99" : "#ff99ff";
+          ctx.font = e.skill === "ultimate" ? "bold 10px monospace" : "bold 8px monospace";
+          const nameWidth = ctx.measureText(e.name).width;
+          
+          // 이름 배경
+          ctx.fillStyle = "rgba(0,0,0,0.7)";
+          ctx.fillRect(
+            e.x + e.w/2 - nameWidth/2 - 2,
+            e.y + e.h + 2,
+            nameWidth + 4,
+            e.skill === "ultimate" ? 12 : 10
+          );
+          
+          // 이름 텍스트
+          ctx.fillStyle = e.skill === "ultimate" ? "#ffff99" : "#ff99ff";
+          ctx.fillText(
+            e.name,
+            e.x + e.w/2 - nameWidth/2,
+            e.y + e.h + (e.skill === "ultimate" ? 11 : 9)
+          );
+
+          // 체력바
+          const healthRatio = e.hp / e.baseHp;
+          let gradient;
+          
+          if (e.skill === "ultimate") {
+            // 최종 보스 특별 체력바 그라데이션
+            gradient = ctx.createLinearGradient(
+              e.x + e.w/2 - healthBarWidth/2, healthBarY,
+              e.x + e.w/2 + healthBarWidth/2, healthBarY
+            );
+            gradient.addColorStop(0, "#ff0000");
+            gradient.addColorStop(0.3, "#ff00ff");
+            gradient.addColorStop(0.6, "#0000ff");
+            gradient.addColorStop(1, "#00ffff");
+            
+            // 체력바 글로우 효과
+            ctx.shadowColor = "#ff0000";
+            ctx.shadowBlur = 10;
+          } else {
+            gradient = ctx.createLinearGradient(
+              e.x + e.w/2 - healthBarWidth/2, healthBarY,
+              e.x + e.w/2 + healthBarWidth/2, healthBarY
+            );
+            gradient.addColorStop(0, "#ff0000");
+            gradient.addColorStop(0.5, "#ffff00");
+            gradient.addColorStop(1, "#00ff00");
+          }
+          
+          ctx.fillStyle = gradient;
+          ctx.fillRect(
+            e.x + e.w/2 - healthBarWidth/2,
+            healthBarY,
+            healthBarWidth * healthRatio,
+            healthBarHeight
+          );
+          
+          // 체력 수치
+          ctx.shadowBlur = 0; // 그림자 효과 초기화
+          ctx.fillStyle = e.skill === "ultimate" ? "#ffff00" : "#fff";
+          ctx.font = e.skill === "ultimate" ? "bold 8px monospace" : "8px monospace";
+          const hpText = `${Math.ceil(e.hp)}/${Math.ceil(e.baseHp)}`;
+          const hpWidth = ctx.measureText(hpText).width;
+          ctx.fillText(
+            hpText,
+            e.x + e.w/2 - hpWidth/2,
+            healthBarY - 8
+          );
         } else {
           const ratio = e.hp / e.baseHp;
           const red = Math.floor(255 - 155 * ratio);
@@ -394,6 +589,17 @@ function PixelClassicShooter() {
 
       // shooting
       st.player.cooldown -= dt / 1000;
+      // 순간이동 처리
+      if (playerStatsRef.current.canTeleport && keysRef.current["Shift"] && playerStatsRef.current.teleportCooldown <= 0) {
+        // 마우스 위치나 랜덤한 안전한 위치로 순간이동
+        p.x = Math.random() * (PIXEL_W - p.w);
+        p.y = Math.max(PIXEL_H * 0.5, Math.min(PIXEL_H - p.h, p.y));
+        playerStatsRef.current.teleportCooldown = 3; // 3초 쿨다운
+      }
+      if (playerStatsRef.current.teleportCooldown > 0) {
+        playerStatsRef.current.teleportCooldown -= dt / 1000;
+      }
+
       if ((keysRef.current[" "] || keysRef.current["Space"]) && st.player.cooldown <= 0) {
         // 기본 발사
         st.bullets.push({ x: p.x + p.w / 2 - 1, y: p.y - 4, w: 2, h: 4, dy: -120 });
@@ -403,6 +609,42 @@ function PixelClassicShooter() {
           st.bullets.push({ x: p.x + p.w / 2 - 4, y: p.y - 4, w: 2, h: 4, dy: -120 }); // 왼쪽 추가 총알
           st.bullets.push({ x: p.x + p.w / 2 + 2, y: p.y - 4, w: 2, h: 4, dy: -120 }); // 오른쪽 추가 총알
         }
+
+        // 대각선 공격이 활성화된 경우 대각선으로 발사
+        if (playerStatsRef.current.diagonalShot) {
+          st.bullets.push({ 
+            x: p.x + p.w / 2 - 1, 
+            y: p.y - 4, 
+            w: 2, 
+            h: 4, 
+            dy: -100, 
+            dx: -60  // 왼쪽 대각선
+          });
+          st.bullets.push({ 
+            x: p.x + p.w / 2 - 1, 
+            y: p.y - 4, 
+            w: 2, 
+            h: 4, 
+            dy: -100, 
+            dx: 60   // 오른쪽 대각선
+          });
+        }
+
+        // 보스에서 획득한 tripleShot 스킬
+        if (playerStatsRef.current.tripleShot) {
+          for (let i = -1; i <= 1; i++) {
+            if (i !== 0) { // 중앙은 이미 발사됨
+              st.bullets.push({ 
+                x: p.x + p.w / 2 - 1 + (i * 4), 
+                y: p.y - 4, 
+                w: 2, 
+                h: 4, 
+                dy: -120
+              });
+            }
+          }
+        }
+
         st.player.cooldown = playerStatsRef.current.shootCooldown;
       }
 
@@ -411,7 +653,12 @@ function PixelClassicShooter() {
       for (let i = st.bullets.length - 1; i >= 0; i--) {
         const b = st.bullets[i];
         b.y += b.dy * dt / 1000;
-        if (b.y + b.h < 0) st.bullets.splice(i, 1);
+        // 대각선 총알의 경우 x 좌표도 이동
+        if (b.dx) {
+          b.x += b.dx * dt / 1000;
+        }
+        // 화면 밖으로 나가면 제거
+        if (b.y + b.h < 0 || b.x < 0 || b.x > PIXEL_W) st.bullets.splice(i, 1);
       }
       for (let i = st.enemyBullets.length - 1; i >= 0; i--) {
         const b = st.enemyBullets[i];
@@ -459,28 +706,329 @@ if (reverseTriggered) {
         st.lastEnemyShotTime = now;
       }
 
-      // boss skills
+      // boss skills and basic attacks
       for (const e of st.enemies) {
         if (!e.boss) continue;
-        e.skillCooldown -= dt / 1000;
-        if (e.skillCooldown <= 0) {
+        
+        // 기본 공격 (모든 보스가 사용)
+        if (now - (e.lastBasicAttackTime || 0) > 1000) {
+          st.enemyBullets.push({ x: e.x + e.w / 2 - 1, y: e.y + e.h, w: 2, h: 4, dy: 100 });
+          e.lastBasicAttackTime = now;
+        }
+
+        // 특수 스킬 (랜덤 타이밍)
+        if (!e.nextSkillTime) {
+          // 처음 스폰되었을 때 다음 스킬 사용 시간 설정
+          e.nextSkillTime = now + Math.random() * 2000 + 1000; // 1~3초 사이
+        }
+        
+        if (now >= e.nextSkillTime) {
+          // 다음 스킬 사용 시간을 새로 설정 (각 보스마다 다른 간격)
+          let minDelay, maxDelay;
+          switch(e.skill) {
+            case "tripleShot": // Iron Drone: 더 자주 공격
+              minDelay = 1500;
+              maxDelay = 3000;
+              break;
+            case "rapidFire": // Plasma Reaper: 매우 빠른 간격
+              minDelay = 1000;
+              maxDelay = 2500;
+              break;
+            case "teleport": // Shadow Warden: 예측하기 어려운 간격
+              minDelay = 2000;
+              maxDelay = 4000;
+              break;
+            case "regen": // Omega Core: 긴 간격
+              minDelay = 3000;
+              maxDelay = 5000;
+              break;
+            case "final": // Void Overlord: 불규칙한 간격
+              minDelay = 1500;
+              maxDelay = 4000;
+              break;
+            default:
+              minDelay = 2000;
+              maxDelay = 4000;
+          }
+          e.nextSkillTime = now + Math.random() * (maxDelay - minDelay) + minDelay;
           if (e.skill === "tripleShot") {
-            for (let i = -1; i <= 1; i++) st.enemyBullets.push({ x: e.x + e.w / 2 - 1 + i * 4, y: e.y + e.h, w: 2, h: 4, dy: 120 });
+            // Iron Drone: 3발 발사 + 양쪽으로 회전하는 총알
+            for (let i = -1; i <= 1; i++) {
+              st.enemyBullets.push({ x: e.x + e.w / 2 - 1 + i * 6, y: e.y + e.h, w: 2, h: 4, dy: 120 });
+            }
+            // 회전하는 총알
+            for (let angle = 0; angle < 360; angle += 45) {
+              const rad = angle * Math.PI / 180;
+              st.enemyBullets.push({
+                x: e.x + e.w / 2,
+                y: e.y + e.h / 2,
+                w: 2,
+                h: 2,
+                dy: Math.sin(rad) * 100,
+                dx: Math.cos(rad) * 100
+              });
+            }
             e.skillCooldown = 3;
           } else if (e.skill === "rapidFire") {
-            st.enemyBullets.push({ x: e.x + e.w / 2 - 1, y: e.y + e.h, w: 2, h: 4, dy: 160 });
-            e.skillCooldown = 0.4;
+            // Plasma Reaper: 빠른 연속 발사 + 레이저
+            for (let i = 0; i < 5; i++) {
+              setTimeout(() => {
+                if (e.hp > 0) { // 보스가 살아있을 때만
+                  st.enemyBullets.push({
+                    x: e.x + e.w / 2 - 1,
+                    y: e.y + e.h,
+                    w: 2,
+                    h: 4,
+                    dy: 160,
+                    dx: (Math.random() - 0.5) * 50 // 약간의 탄막 효과
+                  });
+                }
+              }, i * 100);
+            }
+            e.skillCooldown = 2;
           } else if (e.skill === "teleport") {
+            // Shadow Warden: 순간이동 후 전방위 공격
+            const oldX = e.x;
+            const oldY = e.y;
             e.x = Math.random() * (PIXEL_W - e.w);
+            // 이동 흔적에 총알 발사
+            for (let i = 0; i < 5; i++) {
+              st.enemyBullets.push({
+                x: oldX + (e.x - oldX) * (i / 4),
+                y: oldY + e.h,
+                w: 2,
+                h: 2,
+                dy: 120
+              });
+            }
             e.skillCooldown = 4;
           } else if (e.skill === "regen") {
+            // Omega Core: 회복하면서 방사형 공격
             e.hp = Math.min(e.baseHp, e.hp + 3);
+            for (let i = 0; i < 8; i++) {
+              const angle = (i * 45) * Math.PI / 180;
+              st.enemyBullets.push({
+                x: e.x + e.w / 2,
+                y: e.y + e.h / 2,
+                w: 3,
+                h: 3,
+                dy: Math.sin(angle) * 120,
+                dx: Math.cos(angle) * 120
+              });
+            }
             e.skillCooldown = 5;
           } else if (e.skill === "final") {
-            for (let i = -1; i <= 1; i++) st.enemyBullets.push({ x: e.x + e.w / 2 - 1 + i * 4, y: e.y + e.h, w: 2, h: 4, dy: 180 });
+            // Void Overlord (50레벨 보스): 복합 패턴
+            for (let i = -2; i <= 2; i++) {
+              st.enemyBullets.push({
+                x: e.x + e.w / 2 - 1 + i * 5,
+                y: e.y + e.h,
+                w: 2,
+                h: 4,
+                dy: 180,
+                dx: i * 20
+              });
+            }
             e.x = Math.random() * (PIXEL_W - e.w);
             e.hp = Math.min(e.baseHp, e.hp + 5);
             e.skillCooldown = 3;
+          } else if (e.skill === "lightning") {
+            // Storm Striker (60레벨 보스): 번개 공격
+            const lightningCount = 3;
+            for (let i = 0; i < lightningCount; i++) {
+              let x = Math.random() * PIXEL_W;
+              for (let j = 0; j < 5; j++) {
+                setTimeout(() => {
+                  if (e.hp > 0) {
+                    x += (Math.random() - 0.5) * 30; // 지그재그 효과
+                    st.enemyBullets.push({
+                      x: x,
+                      y: e.y + e.h + j * 40,
+                      w: 3,
+                      h: 8,
+                      dy: 300,
+                      color: "#ffff00" // 노란색 번개
+                    });
+                  }
+                }, j * 100);
+              }
+            }
+            e.skillCooldown = 4;
+          } else if (e.skill === "timeWarp") {
+            // Time Twister (70레벨 보스): 시간 왜곡 공격
+            const bulletCount = 12;
+            for (let i = 0; i < bulletCount; i++) {
+              const angle = (i * 360 / bulletCount) * Math.PI / 180;
+              const speed = 100;
+              st.enemyBullets.push({
+                x: e.x + e.w / 2,
+                y: e.y + e.h / 2,
+                w: 3,
+                h: 3,
+                dy: Math.sin(angle) * speed,
+                dx: Math.cos(angle) * speed,
+                timeWarp: true,
+                age: 0,
+                color: "#ff00ff" // 보라색 시간 왜곡
+              });
+            }
+            e.skillCooldown = 3;
+          } else if (e.skill === "starfall") {
+            // Star Destroyer (80레벨 보스): 별똥별 공격
+            for (let i = 0; i < 4; i++) {
+              const x = Math.random() * PIXEL_W;
+              st.enemyBullets.push({
+                x: x,
+                y: e.y,
+                w: 4,
+                h: 4,
+                dy: 200,
+                dx: 0,
+                isStar: true,
+                splits: 3,
+                color: "#ffffff" // 흰색 별
+              });
+            }
+            e.skillCooldown = 3;
+          } else if (e.skill === "chaos") {
+            // Chaos Emperor (90레벨 보스): 혼돈의 공격
+            // 1. 무작위 텔레포트
+            e.x = Math.random() * (PIXEL_W - e.w);
+            
+            // 2. 전방위 공격
+            const patterns = ["spiral", "cross", "random"][Math.floor(Math.random() * 3)];
+            if (patterns === "spiral") {
+              for (let i = 0; i < 16; i++) {
+                const angle = (i * 22.5) * Math.PI / 180;
+                st.enemyBullets.push({
+                  x: e.x + e.w / 2,
+                  y: e.y + e.h / 2,
+                  w: 3,
+                  h: 3,
+                  dy: Math.sin(angle) * 150,
+                  dx: Math.cos(angle) * 150,
+                  color: "#ff0000" // 빨간색
+                });
+              }
+            } else if (patterns === "cross") {
+              for (let i = -2; i <= 2; i++) {
+                st.enemyBullets.push({
+                  x: e.x + e.w / 2,
+                  y: e.y + e.h / 2,
+                  w: 3,
+                  h: 3,
+                  dy: i * 100,
+                  dx: 150,
+                  color: "#00ffff" // 청록색
+                });
+                st.enemyBullets.push({
+                  x: e.x + e.w / 2,
+                  y: e.y + e.h / 2,
+                  w: 3,
+                  h: 3,
+                  dy: i * 100,
+                  dx: -150,
+                  color: "#00ffff"
+                });
+              }
+            } else {
+              for (let i = 0; i < 8; i++) {
+                st.enemyBullets.push({
+                  x: e.x + e.w / 2,
+                  y: e.y + e.h / 2,
+                  w: 3,
+                  h: 3,
+                  dy: (Math.random() - 0.5) * 300,
+                  dx: (Math.random() - 0.5) * 300,
+                  color: "#ff00ff" // 보라색
+                });
+              }
+            }
+            e.skillCooldown = 2;
+          } else if (e.skill === "ultimate") {
+            // ETERNAL NEMESIS (100레벨 최종 보스): 모든 패턴 집대성
+            if (!e.phaseCounter) e.phaseCounter = 0;
+            e.phaseCounter = (e.phaseCounter + 1) % 4;
+
+            // 페이즈 1: 전방위 레이저 + 방어막
+            if (e.phaseCounter === 0) {
+              for (let i = 0; i < 24; i++) {
+                const angle = (i * 15) * Math.PI / 180;
+                st.enemyBullets.push({
+                  x: e.x + e.w / 2,
+                  y: e.y + e.h / 2,
+                  w: 4,
+                  h: 4,
+                  dy: Math.sin(angle) * 200,
+                  dx: Math.cos(angle) * 200,
+                  color: "#ff0000",
+                  ultimate: true
+                });
+              }
+            }
+            // 페이즈 2: 타임워프 + 스타폴
+            else if (e.phaseCounter === 1) {
+              for (let i = 0; i < 5; i++) {
+                const x = e.x + (i - 2) * (e.w / 2);
+                st.enemyBullets.push({
+                  x: x,
+                  y: e.y,
+                  w: 6,
+                  h: 6,
+                  dy: 150,
+                  dx: 0,
+                  color: "#ffffff",
+                  ultimate: true,
+                  splits: 4
+                });
+              }
+            }
+            // 페이즈 3: 번개 폭풍
+            else if (e.phaseCounter === 2) {
+              for (let i = 0; i < 8; i++) {
+                const x = (PIXEL_W / 7) * i;
+                for (let j = 0; j < 3; j++) {
+                  setTimeout(() => {
+                    if (e.hp > 0) {
+                      st.enemyBullets.push({
+                        x: x + (Math.random() - 0.5) * 30,
+                        y: e.y + j * 30,
+                        w: 4,
+                        h: 10,
+                        dy: 250,
+                        color: "#ffff00",
+                        ultimate: true
+                      });
+                    }
+                  }, j * 100);
+                }
+              }
+            }
+            // 페이즈 4: 카오스 에너지
+            else {
+              e.x = Math.random() * (PIXEL_W - e.w); // 텔레포트
+              for (let i = 0; i < 16; i++) {
+                const angle = (i * 22.5) * Math.PI / 180;
+                const speed = 180;
+                st.enemyBullets.push({
+                  x: e.x + e.w / 2,
+                  y: e.y + e.h / 2,
+                  w: 4,
+                  h: 4,
+                  dy: Math.sin(angle) * speed,
+                  dx: Math.cos(angle) * speed,
+                  color: "#ff00ff",
+                  ultimate: true
+                });
+              }
+            }
+
+            // 체력 회복 (낮은 확률)
+            if (Math.random() < 0.1) {
+              e.hp = Math.min(e.baseHp, e.hp + 10);
+            }
+
+            e.skillCooldown = 1.5; // 더 빠른 스킬 사용
           } else {
             e.skillCooldown = 1;
           }
@@ -499,10 +1047,17 @@ if (reverseTriggered) {
 
             if (e.hp <= 0) {
               const wasBoss = e.boss;
+              const bossSkill = e.skill;
               st.enemies.splice(j, 1);
               // 💥 보스 처치 시 특별 업그레이드 등장
               if (wasBoss) {
-                const picks = bossSpecialUpgrades.slice().sort(() => 0.5 - Math.random()).slice(0, 3);
+                let picks = bossSpecialUpgrades.slice().sort(() => 0.5 - Math.random()).slice(0, 3);
+                
+                // 25% 확률로 보스 스킬을 업그레이드 목록에 추가
+                if (Math.random() < 0.25 && bossSkill && bossSkillToUpgrade[bossSkill]) {
+                  picks[Math.floor(Math.random() * picks.length)] = bossSkillToUpgrade[bossSkill];
+                }
+                
                 setAvailableUpgrades(picks);
                 availableUpgradesRef.current = picks;
                 setShowUpgrade(true);
@@ -568,7 +1123,7 @@ if (reverseTriggered) {
         st.nextWaveScheduled = true;
         setTimeout(() => {
           const nextLevel = levelRef.current + 1;
-          if (nextLevel > 50) {
+          if (nextLevel > 100) {
             setGameOver(true); gameOverRef.current = true;
             setRunning(false); runningRef.current = false;
             return;
@@ -624,20 +1179,6 @@ if (reverseTriggered) {
     setBarrierExtraCount(0); barrierExtraCountRef.current = 0;
     setBarrierHPBonus(0); barrierHPBonusRef.current = 0;
 
-    // 선택한 레벨에 따른 초기 능력치 보너스 부여
-    const bonusUpgrades = Math.floor((selectedLevel - 1) / 5);
-    if (bonusUpgrades > 0) {
-      setPlayerStats(ps => {
-        const newStats = { 
-          moveSpeed: ps.moveSpeed + (bonusUpgrades * 10),
-          shootCooldown: Math.max(0.1, ps.shootCooldown - (bonusUpgrades * 0.05)),
-          shield: bonusUpgrades
-        };
-        playerStatsRef.current = newStats;
-        return newStats;
-      });
-    }
-
     gameRef.current = {
       player: { x: 76, y: 400, w: 10, h: 8, cooldown: 0 },
       bullets: [], enemyBullets: [], enemies: [], barriers: [], lastEnemyShotTime: 0, nextWaveScheduled: false
@@ -665,8 +1206,8 @@ if (reverseTriggered) {
           zIndex: 100
         }}>
           <h2 style={{ margin: "0 0 20px 0", color: "#fff" }}>레벨 선택</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 10, marginBottom: 20 }}>
-            {[...Array(50)].map((_, i) => (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 5, marginBottom: 20, maxHeight: "400px", overflowY: "auto" }}>
+            {[...Array(100)].map((_, i) => (
               <button
                 key={i}
                 onClick={() => startGameAtLevel(i + 1)}
@@ -676,15 +1217,13 @@ if (reverseTriggered) {
                   color: "#fff",
                   border: "1px solid #666",
                   borderRadius: "4px",
-                  cursor: "pointer"
+                  cursor: "pointer",
+                  fontSize: "11px" // 버튼 크기 조정을 위해 글자 크기 줄임
                 }}
               >
                 {i + 1}
               </button>
             ))}
-          </div>
-          <div style={{ fontSize: 12, color: "#999" }}>
-            * 높은 레벨 선택 시 초기 능력치 보너스가 주어집니다
           </div>
         </div>
       ) : (
@@ -730,6 +1269,12 @@ if (reverseTriggered) {
                 {u === "superShield" && "🛡️✨ add 5 shield"}
                 {u === "megaAttack" && "💢💥 +3 damage"}
                 {u === "doubleFire" && "💥💥 shoting 2 bullets"}
+                {u === "diagonalShot" && "↖️↗️ Diagonal Shot"}
+                {u === "playerTripleShot" && "🎯 Triple Shot"}
+                {u === "playerRapidFire" && "⚡ Super Fast Fire"}
+                {u === "playerTeleport" && "💫 Teleport (Shift)"}
+                {u === "playerRegen" && "💖 Auto Heal"}
+                {u === "playerFinalForm" && "✨ Ultimate Power"}
               </button>
             ))}
           </div>
