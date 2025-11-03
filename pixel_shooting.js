@@ -97,6 +97,23 @@ const aircraftTypes = [
       shield: 5,
       attackPower: 3
     }
+  },
+  {
+    id: "godmode",
+    name: "⚡ DIVINE DESTROYER ⚡",
+    description: "🌌 신의 영역 - 무한 모드 전용 🌌",
+    skillName: "Divine Annihilation",
+    skillDesc: "절대 파괴력 + 무제한 레벨 진행",
+    color: "#ffff00",
+    locked: true,
+    unlockCondition: "200레벨 클리어 + 모든 비행기로 100레벨 클리어",
+    stats: {
+      lives: 50,
+      moveSpeed: 120,
+      shootCooldown: 0.05,
+      shield: 15,
+      attackPower: 10
+    }
   }
 ];
 
@@ -124,8 +141,22 @@ function PixelClassicShooter() {
   const [gameOver, setGameOver] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const [showLevelSelect, setShowLevelSelect] = useState(false);
-  const [showAircraftSelect, setShowAircraftSelect] = useState(true);
+  const [showAircraftSelect, setShowAircraftSelect] = useState(false);
+  const [showMainMenu, setShowMainMenu] = useState(true);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showModeSelect, setShowModeSelect] = useState(false);
   const [selectedAircraft, setSelectedAircraft] = useState(null);
+  const [isInfiniteMode, setIsInfiniteMode] = useState(false);
+  
+  // 설정 state
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const saved = localStorage.getItem('soundEnabled');
+    return saved !== null ? saved === 'true' : true;
+  });
+  const [musicVolume, setMusicVolume] = useState(() => {
+    const saved = localStorage.getItem('musicVolume');
+    return saved !== null ? parseInt(saved) : 50;
+  });
   const [availableUpgrades, setAvailableUpgrades] = useState([]);
   const [hitFlash, setHitFlash] = useState(false);
   const [gameCleared, setGameCleared] = useState(() => {
@@ -137,6 +168,23 @@ function PixelClassicShooter() {
     return localStorage.getItem('phoenixUnlocked') === 'true';
   });
   const [showPhoenixUnlock, setShowPhoenixUnlock] = useState(false);
+  const [godmodeUnlocked, setGodmodeUnlocked] = useState(() => {
+    // localStorage에서 Divine Destroyer 해금 여부 불러오기
+    return localStorage.getItem('godmodeUnlocked') === 'true';
+  });
+  const [showGodmodeUnlock, setShowGodmodeUnlock] = useState(false);
+  
+  // 각 비행기별 100레벨 클리어 추적
+  const [aircraftClears, setAircraftClears] = useState(() => {
+    const saved = localStorage.getItem('aircraftClears');
+    return saved ? JSON.parse(saved) : {
+      fighter: false,
+      bomber: false,
+      stealth: false,
+      interceptor: false,
+      tank: false
+    };
+  });
 
   // persistent upgrade trackers
   const [playerStats, setPlayerStats] = useState({ moveSpeed: 50, shootCooldown: 0.3, shield: 0 });
@@ -990,6 +1038,74 @@ function PixelClassicShooter() {
           }
           
           const baseCooldown = 15;
+          const reduction = playerStatsRef.current.skillCooldownReduction || 0;
+          playerStatsRef.current.skillCooldown = Math.max(2, baseCooldown - reduction);
+        }
+        else if (aircraftId === "godmode") {
+          // Divine Annihilation: 신의 영역 - 절대 파괴력
+          console.log("Divine Annihilation 발동!");
+          
+          // 1. 화면 전체 범위 레이저 (5개 - 좌2, 좌1, 중앙, 우1, 우2)
+          for (let i = -2; i <= 2; i++) {
+            st.bullets.push({ 
+              x: p.x + p.w / 2 - 3 + (i * 15), 
+              y: 0, 
+              w: 6, 
+              h: PIXEL_H, 
+              dy: 0,
+              laser: true,
+              laserDuration: 2.0,
+              followPlayer: true,
+              laserOffset: i * 15,
+              color: "#ffff00"
+            });
+          }
+          
+          // 2. 전방 초강력 미사일 20발
+          for (let i = 0; i < 20; i++) {
+            st.bullets.push({ 
+              x: p.x + p.w / 2 - 2 + (i - 9.5) * 2, 
+              y: p.y - 15, 
+              w: 5, 
+              h: 10, 
+              dy: -250,
+              missile: true,
+              color: "#ffff00"
+            });
+          }
+          
+          // 3. 720도 전방위 에너지탄 (48발 - 7.5도마다)
+          for (let angle = 0; angle < 720; angle += 15) {
+            const rad = angle * Math.PI / 180;
+            st.bullets.push({ 
+              x: p.x + p.w / 2, 
+              y: p.y + p.h / 2, 
+              w: 5, 
+              h: 5, 
+              dx: Math.sin(rad) * 200,
+              dy: -Math.cos(rad) * 200,
+              color: "#ffff00",
+              godmode: true
+            });
+          }
+          
+          // 4. 6개의 회전 폭탄 (광역 피해)
+          for (let i = 0; i < 6; i++) {
+            const angle = (i * 60) * Math.PI / 180;
+            st.bullets.push({ 
+              x: p.x + p.w / 2, 
+              y: p.y, 
+              w: 6, 
+              h: 6, 
+              dx: Math.sin(angle) * 120,
+              dy: -Math.cos(angle) * 120,
+              bomb: true,
+              bombRadius: 40,
+              color: "#ffff00"
+            });
+          }
+          
+          const baseCooldown = 20;
           const reduction = playerStatsRef.current.skillCooldownReduction || 0;
           playerStatsRef.current.skillCooldown = Math.max(2, baseCooldown - reduction);
         }
@@ -1857,30 +1973,51 @@ if (reverseTriggered) {
           const currentAircraft = selectedAircraftRef.current;
           
           // 피닉스 X-99가 아닌 경우 100레벨에서 종료
-          if (nextLevel > 100 && (!currentAircraft || currentAircraft.id !== 'phoenix')) {
+          if (nextLevel > 100 && (!currentAircraft || currentAircraft.id !== 'phoenix' && currentAircraft.id !== 'godmode')) {
             // 게임 클리어!
             setGameOver(true); gameOverRef.current = true;
             setRunning(false); runningRef.current = false;
             setGameCleared(true);
             localStorage.setItem('pixelShooterCleared', 'true');
             
-            // F-16 Fighter로 클리어했는지 체크
-            if (currentAircraft && currentAircraft.id === 'fighter' && !phoenixUnlocked) {
-              setPhoenixUnlocked(true);
-              localStorage.setItem('phoenixUnlocked', 'true');
-              setShowPhoenixUnlock(true);
+            // 각 비행기별 100레벨 클리어 기록
+            if (currentAircraft) {
+              const aircraftId = currentAircraft.id;
+              if (['fighter', 'bomber', 'stealth', 'interceptor', 'tank'].includes(aircraftId)) {
+                setAircraftClears(prev => {
+                  const updated = { ...prev, [aircraftId]: true };
+                  localStorage.setItem('aircraftClears', JSON.stringify(updated));
+                  return updated;
+                });
+              }
+              
+              // F-16 Fighter로 클리어했는지 체크
+              if (aircraftId === 'fighter' && !phoenixUnlocked) {
+                setPhoenixUnlocked(true);
+                localStorage.setItem('phoenixUnlocked', 'true');
+                setShowPhoenixUnlock(true);
+              }
             }
             return;
           }
           
-          // 피닉스 X-99인 경우 200레벨까지 진행 가능
-          if (nextLevel > 200) {
-            // 피닉스 전용 스테이지 완전 클리어!
+          // Divine Destroyer는 무한 모드 (200레벨 이후에도 계속 진행)
+          // 피닉스는 200레벨에서 종료
+          if (nextLevel > 200 && currentAircraft && currentAircraft.id !== 'godmode') {
+            // 200레벨 완전 클리어!
             setGameOver(true); gameOverRef.current = true;
             setRunning(false); runningRef.current = false;
             setGameCleared(true);
             localStorage.setItem('pixelShooterCleared', 'true');
             localStorage.setItem('phoenixStageCleared', 'true');
+            
+            // Divine Destroyer 해금 체크: 200레벨 클리어 + 모든 비행기로 100레벨 클리어
+            const allAircraftCleared = Object.values(aircraftClears).every(v => v === true);
+            if (allAircraftCleared && !godmodeUnlocked) {
+              setGodmodeUnlocked(true);
+              localStorage.setItem('godmodeUnlocked', 'true');
+              setShowGodmodeUnlock(true);
+            }
             return;
           }
           
@@ -1919,6 +2056,7 @@ if (reverseTriggered) {
 
   // ----- choose upgrade from UI -----
   function chooseUpgrade(u) {
+    playSound('powerup');
     applyUpgrade(u);
   }
 
@@ -1936,6 +2074,12 @@ if (reverseTriggered) {
   // ----- start game with selected level -----
   function startGameAtLevel(selectedLevel) {
     const aircraft = selectedAircraftRef.current || aircraftTypes[0];
+    
+    // 101-200레벨은 피닉스나 갓모드만 시작 가능
+    if (selectedLevel > 100 && aircraft.id !== 'phoenix' && aircraft.id !== 'godmode') {
+      alert('⚠️ 101레벨 이상은 PHOENIX X-99 또는 DIVINE DESTROYER만 플레이할 수 있습니다!');
+      return;
+    }
     
     setLives(aircraft.stats.lives); 
     livesRef.current = aircraft.stats.lives;
@@ -1986,7 +2130,293 @@ if (reverseTriggered) {
         <canvas ref={canvasRef} style={{ imageRendering: "pixelated", width: 320, height: 480, display: "block" }} />
       </div>
 
-      {showAircraftSelect ? (
+      {/* 메인 메뉴 */}
+      {showMainMenu ? (
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
+          padding: "50px 60px",
+          borderRadius: "20px",
+          border: "3px solid #0f3460",
+          zIndex: 100,
+          boxShadow: "0 0 40px rgba(15, 52, 96, 0.8)"
+        }}>
+          <h1 style={{ 
+            margin: "0 0 30px 0", 
+            color: "#fff", 
+            fontSize: "32px",
+            textShadow: "0 0 20px rgba(255,255,255,0.5)"
+          }}>
+            🚀 PIXEL SHOOTER 🚀
+          </h1>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "15px", minWidth: "250px" }}>
+            <button
+              onClick={() => {
+                setShowMainMenu(false);
+                setShowModeSelect(true);
+              }}
+              style={{
+                padding: "15px 30px",
+                background: "linear-gradient(135deg, #0f3460 0%, #16213e 100%)",
+                color: "#fff",
+                border: "2px solid #0f3460",
+                borderRadius: "10px",
+                cursor: "pointer",
+                fontSize: "18px",
+                fontWeight: "bold",
+                transition: "all 0.3s"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "linear-gradient(135deg, #16213e 0%, #0f3460 100%)";
+                e.currentTarget.style.transform = "scale(1.05)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "linear-gradient(135deg, #0f3460 0%, #16213e 100%)";
+                e.currentTarget.style.transform = "scale(1)";
+              }}
+            >
+              🎮 게임 시작
+            </button>
+            
+            <button
+              onClick={() => {
+                setShowMainMenu(false);
+                setShowSettings(true);
+              }}
+              style={{
+                padding: "15px 30px",
+                background: "linear-gradient(135deg, #0f3460 0%, #16213e 100%)",
+                color: "#fff",
+                border: "2px solid #0f3460",
+                borderRadius: "10px",
+                cursor: "pointer",
+                fontSize: "18px",
+                fontWeight: "bold",
+                transition: "all 0.3s"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "linear-gradient(135deg, #16213e 0%, #0f3460 100%)";
+                e.currentTarget.style.transform = "scale(1.05)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "linear-gradient(135deg, #0f3460 0%, #16213e 100%)";
+                e.currentTarget.style.transform = "scale(1)";
+              }}
+            >
+              ⚙️ 설정
+            </button>
+          </div>
+          
+          <div style={{ marginTop: "30px", fontSize: "12px", color: "#aaa" }}>
+            <div>조작: 방향키 이동 | 스페이스 발사 | W 스킬</div>
+            <div style={{ marginTop: "5px" }}>버전 1.0 | Made with ❤️</div>
+          </div>
+        </div>
+      ) : showModeSelect ? (
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          background: "#222",
+          padding: 40,
+          borderRadius: 15,
+          border: "2px solid #555",
+          zIndex: 100,
+          minWidth: "500px"
+        }}>
+          <h2 style={{ margin: "0 0 30px 0", color: "#fff", textAlign: "center" }}>🎮 게임 모드 선택</h2>
+          
+          <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginBottom: "30px" }}>
+            {/* Normal Mode */}
+            <button
+              onClick={() => {
+                setIsInfiniteMode(false);
+                setShowModeSelect(false);
+                setShowAircraftSelect(true);
+              }}
+              style={{
+                padding: "25px",
+                background: "linear-gradient(135deg, #2563eb 0%, #1e40af 100%)",
+                color: "#fff",
+                border: "3px solid #1e40af",
+                borderRadius: "15px",
+                cursor: "pointer",
+                fontSize: "18px",
+                fontWeight: "bold",
+                textAlign: "left",
+                transition: "all 0.3s"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "linear-gradient(135deg, #1e40af 0%, #2563eb 100%)";
+                e.currentTarget.style.transform = "scale(1.05)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "linear-gradient(135deg, #2563eb 0%, #1e40af 100%)";
+                e.currentTarget.style.transform = "scale(1)";
+              }}
+            >
+              <div style={{ fontSize: "24px", marginBottom: "10px" }}>🎯 일반 모드</div>
+              <div style={{ fontSize: "14px", opacity: 0.9 }}>• 레벨 1-100: 모든 비행기 사용 가능</div>
+              <div style={{ fontSize: "14px", opacity: 0.9 }}>• 레벨 101-200: 피닉스 X-99 / 신의 파괴자 전용</div>
+              <div style={{ fontSize: "14px", opacity: 0.9 }}>• 보스 도전 및 비행기 해금</div>
+            </button>
+            
+            {/* Infinite Mode */}
+            <button
+              onClick={() => {
+                if (!godmodeUnlocked) {
+                  alert("무한 모드는 신의 파괴자를 해금해야 플레이할 수 있습니다!\n\n해금 조건:\n- 200 레벨 클리어\n- 모든 기본 비행기로 100 레벨 클리어");
+                  return;
+                }
+                setIsInfiniteMode(true);
+                setSelectedAircraft("godmode");
+                setShowModeSelect(false);
+                setShowLevelSelect(true);
+              }}
+              disabled={!godmodeUnlocked}
+              style={{
+                padding: "25px",
+                background: godmodeUnlocked 
+                  ? "linear-gradient(135deg, #dc2626 0%, #991b1b 100%)" 
+                  : "linear-gradient(135deg, #4b5563 0%, #374151 100%)",
+                color: "#fff",
+                border: godmodeUnlocked ? "3px solid #991b1b" : "3px solid #374151",
+                borderRadius: "15px",
+                cursor: godmodeUnlocked ? "pointer" : "not-allowed",
+                fontSize: "18px",
+                fontWeight: "bold",
+                textAlign: "left",
+                opacity: godmodeUnlocked ? 1 : 0.5,
+                transition: "all 0.3s"
+              }}
+              onMouseEnter={(e) => {
+                if (godmodeUnlocked) {
+                  e.currentTarget.style.background = "linear-gradient(135deg, #991b1b 0%, #dc2626 100%)";
+                  e.currentTarget.style.transform = "scale(1.05)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (godmodeUnlocked) {
+                  e.currentTarget.style.background = "linear-gradient(135deg, #dc2626 0%, #991b1b 100%)";
+                  e.currentTarget.style.transform = "scale(1)";
+                }
+              }}
+            >
+              <div style={{ fontSize: "24px", marginBottom: "10px" }}>
+                ♾️ 무한 모드 {!godmodeUnlocked && "🔒"}
+              </div>
+              <div style={{ fontSize: "14px", opacity: 0.9 }}>• 레벨 201부터 시작</div>
+              <div style={{ fontSize: "14px", opacity: 0.9 }}>• 신의 파괴자 전용 무한 스테이지</div>
+              <div style={{ fontSize: "14px", opacity: 0.9 }}>• 끝없는 도전과 최고 기록 갱신</div>
+              {!godmodeUnlocked && (
+                <div style={{ fontSize: "12px", color: "#fbbf24", marginTop: "10px" }}>
+                  🔓 해금: 200레벨 + 모든 기본 비행기 100레벨 클리어
+                </div>
+              )}
+            </button>
+          </div>
+          
+          <button
+            onClick={() => {
+              setShowModeSelect(false);
+              setShowMainMenu(true);
+            }}
+            style={{
+              padding: "12px 30px",
+              background: "#555",
+              color: "#fff",
+              border: "2px solid #666",
+              borderRadius: "10px",
+              cursor: "pointer",
+              fontSize: "16px",
+              fontWeight: "bold",
+              width: "100%",
+              transition: "all 0.3s"
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = "#666";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = "#555";
+            }}
+          >
+            ← 메인 메뉴로 돌아가기
+          </button>
+        </div>
+      ) : showSettings ? (
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          background: "#222",
+          padding: 40,
+          borderRadius: 15,
+          border: "2px solid #555",
+          zIndex: 100,
+          minWidth: "400px"
+        }}>
+          <h2 style={{ margin: "0 0 30px 0", color: "#fff" }}>⚙️ 설정</h2>
+          
+          <div style={{ textAlign: "left", marginBottom: "20px" }}>
+            <label style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "15px" }}>
+              <input 
+                type="checkbox" 
+                checked={soundEnabled}
+                onChange={(e) => {
+                  setSoundEnabled(e.target.checked);
+                  localStorage.setItem('soundEnabled', e.target.checked);
+                }}
+                style={{ width: "20px", height: "20px", cursor: "pointer" }}
+              />
+              <span style={{ fontSize: "16px" }}>🔊 사운드 효과</span>
+            </label>
+            
+            <div style={{ marginBottom: "10px" }}>
+              <label style={{ fontSize: "16px", display: "block", marginBottom: "10px" }}>
+                🎵 음악 볼륨: {musicVolume}%
+              </label>
+              <input 
+                type="range" 
+                min="0" 
+                max="100" 
+                value={musicVolume}
+                onChange={(e) => {
+                  setMusicVolume(parseInt(e.target.value));
+                  localStorage.setItem('musicVolume', e.target.value);
+                }}
+                style={{ width: "100%", cursor: "pointer" }}
+              />
+            </div>
+          </div>
+          
+          <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+            <button
+              onClick={() => {
+                setShowSettings(false);
+                setShowMainMenu(true);
+              }}
+              style={{
+                padding: "10px 20px",
+                background: "#4CAF50",
+                color: "#fff",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "bold"
+              }}
+            >
+              ✓ 저장하고 돌아가기
+            </button>
+          </div>
+        </div>
+      ) : showAircraftSelect ? (
         <div style={{
           position: "absolute",
           top: "50%",
@@ -2009,7 +2439,9 @@ if (reverseTriggered) {
               onClick={() => {
                 const saveData = {
                   gameCleared: gameCleared,
-                  phoenixUnlocked: phoenixUnlocked
+                  phoenixUnlocked: phoenixUnlocked,
+                  godmodeUnlocked: godmodeUnlocked,
+                  aircraftClears: aircraftClears
                 };
                 localStorage.setItem('pixelShooterSave', JSON.stringify(saveData));
                 alert('💾 게임이 저장되었습니다!');
@@ -2034,8 +2466,12 @@ if (reverseTriggered) {
                   const saveData = JSON.parse(saved);
                   setGameCleared(saveData.gameCleared || false);
                   setPhoenixUnlocked(saveData.phoenixUnlocked || false);
+                  setGodmodeUnlocked(saveData.godmodeUnlocked || false);
+                  setAircraftClears(saveData.aircraftClears || { fighter: false, bomber: false, stealth: false, interceptor: false, tank: false });
                   localStorage.setItem('pixelShooterCleared', saveData.gameCleared ? 'true' : 'false');
                   localStorage.setItem('phoenixUnlocked', saveData.phoenixUnlocked ? 'true' : 'false');
+                  localStorage.setItem('godmodeUnlocked', saveData.godmodeUnlocked ? 'true' : 'false');
+                  localStorage.setItem('aircraftClears', JSON.stringify(saveData.aircraftClears || {}));
                   alert('📂 저장된 게임을 불러왔습니다!');
                 } else {
                   alert('❌ 저장된 데이터가 없습니다!');
@@ -2059,11 +2495,16 @@ if (reverseTriggered) {
                 if (confirm('⚠️ 현재 진행 상황이 초기화됩니다. (저장된 데이터는 유지됨) 계속하시겠습니까?')) {
                   localStorage.removeItem('pixelShooterCleared');
                   localStorage.removeItem('phoenixUnlocked');
+                  localStorage.removeItem('godmodeUnlocked');
                   localStorage.removeItem('phoenixStageCleared');
+                  localStorage.removeItem('aircraftClears');
                   // localStorage.removeItem('pixelShooterSave'); // 저장된 데이터는 유지
                   setGameCleared(false);
                   setPhoenixUnlocked(false);
+                  setGodmodeUnlocked(false);
                   setShowPhoenixUnlock(false);
+                  setShowGodmodeUnlock(false);
+                  setAircraftClears({ fighter: false, bomber: false, stealth: false, interceptor: false, tank: false });
                   alert('🔄 게임이 초기화되었습니다! (저장된 데이터는 유지됨)');
                 }
               }}
@@ -2079,6 +2520,24 @@ if (reverseTriggered) {
               }}
             >
               🔄 리셋
+            </button>
+            <button
+              onClick={() => {
+                setShowAircraftSelect(false);
+                setShowModeSelect(true);
+              }}
+              style={{
+                padding: "8px 15px",
+                background: "#607D8B",
+                color: "#fff",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: "bold"
+              }}
+            >
+              ← 모드 선택
             </button>
           </div>
           
@@ -2132,9 +2591,52 @@ if (reverseTriggered) {
               </button>
             </div>
           )}
+          {showGodmodeUnlock && (
+            <div style={{
+              marginBottom: "20px",
+              padding: "20px",
+              background: "linear-gradient(135deg, #ffff00 0%, #ff8800 50%, #ff0000 100%)",
+              borderRadius: "15px",
+              fontSize: "18px",
+              color: "#000",
+              fontWeight: "bold",
+              textShadow: "0 0 20px rgba(255,255,255,1), 0 0 30px rgba(255,255,0,0.8)",
+              animation: "pulse 1.5s infinite",
+              border: "4px solid #fff",
+              position: "relative",
+              boxShadow: "0 0 30px rgba(255,255,0,0.8)"
+            }}>
+              ⚡🌌 DIVINE DESTROYER UNLOCKED! 🌌⚡
+              <div style={{ fontSize: "14px", marginTop: "8px", fontWeight: "bold" }}>
+                신의 영역에 도달했습니다!
+              </div>
+              <div style={{ fontSize: "11px", marginTop: "5px", color: "#333" }}>
+                모든 비행기 마스터 달성 + 200레벨 정복
+              </div>
+              <button 
+                onClick={() => setShowGodmodeUnlock(false)}
+                style={{
+                  marginTop: "12px",
+                  padding: "8px 20px",
+                  background: "#000",
+                  color: "#ffff00",
+                  border: "2px solid #ffff00",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  fontSize: "14px"
+                }}
+              >
+                확인
+              </button>
+            </div>
+          )}
           <div style={{ display: "flex", flexDirection: "row", gap: 15, justifyContent: "center", flexWrap: "wrap" }}>
             {aircraftTypes.map((aircraft) => {
-              const isLocked = aircraft.locked && !phoenixUnlocked;
+              const isLocked = aircraft.locked && (
+                (aircraft.id === 'phoenix' && !phoenixUnlocked) ||
+                (aircraft.id === 'godmode' && !godmodeUnlocked)
+              );
               return (
                 <div
                   key={aircraft.id}
@@ -2218,47 +2720,109 @@ if (reverseTriggered) {
           border: "2px solid #555",
           zIndex: 100
         }}>
-          <h2 style={{ margin: "0 0 20px 0", color: "#fff" }}>레벨 선택</h2>
-          {phoenixUnlocked && (
+          <h2 style={{ margin: "0 0 20px 0", color: "#fff" }}>
+            {isInfiniteMode ? "♾️ 무한 모드 레벨 선택" : "레벨 선택"}
+          </h2>
+          {!isInfiniteMode && phoenixUnlocked && (
             <div style={{ marginBottom: "10px", padding: "8px", background: "#ff0080", borderRadius: "5px", fontSize: "12px", fontWeight: "bold" }}>
               ⭐ 피닉스 전용 스테이지 (101-200) 해금됨!
             </div>
           )}
+          {isInfiniteMode && (
+            <div style={{ marginBottom: "10px", padding: "10px", background: "linear-gradient(90deg, #ffff00, #ff8800)", borderRadius: "5px", fontSize: "13px", fontWeight: "bold", color: "#000" }}>
+              ⚡ 무한 모드 - 신의 파괴자 전용 스테이지 ⚡
+            </div>
+          )}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 5, marginBottom: 20, maxHeight: "400px", overflowY: "auto" }}>
-            {[...Array(200)].map((_, i) => {
-              const levelNum = i + 1;
-              const isPhoenixStage = levelNum > 100;
-              const isLocked = isPhoenixStage && !phoenixUnlocked;
-              const isFinalBoss = levelNum === 200;
-              
-              return (
-                <button
-                  key={i}
-                  onClick={() => !isLocked && startGameAtLevel(levelNum)}
-                  style={{
-                    padding: "8px",
-                    background: isFinalBoss ? "#ff0000" : (isPhoenixStage ? (isLocked ? "#333" : "#ff0080") : "#333"),
-                    color: isLocked ? "#666" : "#fff",
-                    border: isFinalBoss ? "2px solid #ffff00" : (isPhoenixStage ? "1px solid #ff0080" : "1px solid #666"),
-                    borderRadius: "4px",
-                    cursor: isLocked ? "not-allowed" : "pointer",
-                    fontSize: "11px",
-                    fontWeight: isPhoenixStage ? "bold" : "normal",
-                    opacity: isLocked ? 0.3 : 1,
-                    boxShadow: isFinalBoss && !isLocked ? "0 0 10px #ff0000" : "none"
-                  }}
-                  disabled={isLocked}
-                >
-                  {isLocked ? "🔒" : (isFinalBoss ? "👑" : levelNum)}
-                </button>
-              );
-            })}
+            {isInfiniteMode ? (
+              // 무한 모드: 201부터 시작
+              [...Array(50)].map((_, i) => {
+                const levelNum = 201 + i;
+                
+                return (
+                  <button
+                    key={i}
+                    onClick={() => startGameAtLevel(levelNum)}
+                    style={{
+                      padding: "8px",
+                      background: "linear-gradient(135deg, #ffff00, #ff8800)",
+                      color: "#000",
+                      border: "2px solid #ff8800",
+                      borderRadius: "4px",
+                      cursor: "pointer",
+                      fontSize: "11px",
+                      fontWeight: "bold",
+                      boxShadow: "0 0 8px rgba(255,136,0,0.6)"
+                    }}
+                  >
+                    {levelNum}
+                  </button>
+                );
+              })
+            ) : (
+              // 일반 모드: 1-200
+              [...Array(200)].map((_, i) => {
+                const levelNum = i + 1;
+                const isPhoenixStage = levelNum > 100;
+                const isLocked = isPhoenixStage && !phoenixUnlocked;
+                const isFinalBoss = levelNum === 200;
+                
+                return (
+                  <button
+                    key={i}
+                    onClick={() => !isLocked && startGameAtLevel(levelNum)}
+                    style={{
+                      padding: "8px",
+                      background: isFinalBoss ? "#ff0000" : (isPhoenixStage ? (isLocked ? "#333" : "#ff0080") : "#333"),
+                      color: isLocked ? "#666" : "#fff",
+                      border: isFinalBoss ? "2px solid #ffff00" : (isPhoenixStage ? "1px solid #ff0080" : "1px solid #666"),
+                      borderRadius: "4px",
+                      cursor: isLocked ? "not-allowed" : "pointer",
+                      fontSize: "11px",
+                      fontWeight: isPhoenixStage ? "bold" : "normal",
+                      opacity: isLocked ? 0.3 : 1,
+                      boxShadow: isFinalBoss && !isLocked ? "0 0 10px #ff0000" : "none"
+                    }}
+                    disabled={isLocked}
+                  >
+                    {isLocked ? "🔒" : (isFinalBoss ? "👑" : levelNum)}
+                  </button>
+                );
+              })
+            )}
           </div>
+          <button
+            onClick={() => {
+              setShowLevelSelect(false);
+              setShowModeSelect(true);
+            }}
+            style={{
+              padding: "10px 20px",
+              background: "#555",
+              color: "#fff",
+              border: "2px solid #666",
+              borderRadius: "8px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: "bold",
+              width: "100%"
+            }}
+          >
+            ← 모드 선택으로 돌아가기
+          </button>
         </div>
       ) : (
         <div style={{ marginTop: 8 }}>
           <div style={{ fontSize: 13 }}>
             Lives: {lives} &nbsp;•&nbsp; Level: {level}
+            {selectedAircraft && selectedAircraft.id === 'godmode' && level > 200 && (
+              <span style={{ marginLeft: 10, color: "#ffff00", fontWeight: "bold", textShadow: "0 0 5px #ff8800" }}>
+                ⚡ INFINITE MODE ⚡
+              </span>
+            )}
+          </div>
+          <div style={{ fontSize: 11, color: "#aaa", marginTop: 2 }}>
+            {selectedAircraft && selectedAircraft.name}
           </div>
           <div style={{ marginTop: 6 }}>
             <button onClick={() => { setRunning(r => { runningRef.current = !r; return !r; }); }}>
@@ -2270,13 +2834,24 @@ if (reverseTriggered) {
               runningRef.current = false;
             }} style={{ marginLeft: 8 }}>Level Select</button>
             <button onClick={() => {
-              setShowAircraftSelect(true);
+              setShowModeSelect(true);
+              setShowAircraftSelect(false);
               setShowLevelSelect(false);
               setRunning(false);
               runningRef.current = false;
               setGameOver(false);
               gameOverRef.current = false;
-            }} style={{ marginLeft: 8 }}>Change Aircraft</button>
+            }} style={{ marginLeft: 8 }}>Mode Select</button>
+            <button onClick={() => {
+              setShowMainMenu(true);
+              setShowAircraftSelect(false);
+              setShowLevelSelect(false);
+              setShowModeSelect(false);
+              setRunning(false);
+              runningRef.current = false;
+              setGameOver(false);
+              gameOverRef.current = false;
+            }} style={{ marginLeft: 8 }}>Main Menu</button>
           </div>
         </div>
       )}
