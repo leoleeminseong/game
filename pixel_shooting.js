@@ -80,6 +80,23 @@ const aircraftTypes = [
       shield: 3,
       attackPower: 1
     }
+  },
+  {
+    id: "phoenix",
+    name: "PHOENIX X-99",
+    description: "⭐ 궁극의 전투기 ⭐",
+    skillName: "Phoenix Storm",
+    skillDesc: "전방위 섬멸 공격",
+    color: "#ff0080",
+    locked: true,
+    unlockCondition: "F-16 Fighter로 100레벨 클리어",
+    stats: {
+      lives: 20,
+      moveSpeed: 80,
+      shootCooldown: 0.1,
+      shield: 5,
+      attackPower: 3
+    }
   }
 ];
 
@@ -111,6 +128,15 @@ function PixelClassicShooter() {
   const [selectedAircraft, setSelectedAircraft] = useState(null);
   const [availableUpgrades, setAvailableUpgrades] = useState([]);
   const [hitFlash, setHitFlash] = useState(false);
+  const [gameCleared, setGameCleared] = useState(() => {
+    // localStorage에서 클리어 여부 불러오기
+    return localStorage.getItem('pixelShooterCleared') === 'true';
+  });
+  const [phoenixUnlocked, setPhoenixUnlocked] = useState(() => {
+    // localStorage에서 Phoenix 해금 여부 불러오기
+    return localStorage.getItem('phoenixUnlocked') === 'true';
+  });
+  const [showPhoenixUnlock, setShowPhoenixUnlock] = useState(false);
 
   // persistent upgrade trackers
   const [playerStats, setPlayerStats] = useState({ moveSpeed: 50, shootCooldown: 0.3, shield: 0 });
@@ -875,6 +901,55 @@ function PixelClassicShooter() {
             });
           }
           playerStatsRef.current.skillCooldown = 9;
+        }
+        else if (aircraftId === "phoenix") {
+          // Phoenix Storm: 궁극의 전방위 섬멸 공격
+          console.log("Phoenix Storm 발동!");
+          
+          // 1. 전방 강력한 미사일 10발
+          for (let i = 0; i < 10; i++) {
+            st.bullets.push({ 
+              x: p.x + p.w / 2 - 2 + (i - 4.5) * 3, 
+              y: p.y - 10, 
+              w: 4, 
+              h: 8, 
+              dy: -200,
+              missile: true,
+              color: "#ff0080"
+            });
+          }
+          
+          // 2. 360도 전방위 레이저 패턴
+          for (let angle = 0; angle < 360; angle += 15) {
+            const rad = angle * Math.PI / 180;
+            st.bullets.push({ 
+              x: p.x + p.w / 2, 
+              y: p.y + p.h / 2, 
+              w: 4, 
+              h: 4, 
+              dx: Math.sin(rad) * 150,
+              dy: -Math.cos(rad) * 150,
+              color: "#ff0080",
+              phoenix: true
+            });
+          }
+          
+          // 3. 3개의 관통 레이저 (좌, 중앙, 우)
+          for (let i = -1; i <= 1; i++) {
+            st.bullets.push({ 
+              x: p.x + p.w / 2 - 2 + (i * 20), 
+              y: 0, 
+              w: 5, 
+              h: p.y, 
+              dy: 0,
+              laser: true,
+              laserDuration: 1.0,
+              followPlayer: false,
+              color: "#ff0080"
+            });
+          }
+          
+          playerStatsRef.current.skillCooldown = 15;
         }
       }
       
@@ -1738,8 +1813,19 @@ if (reverseTriggered) {
         setTimeout(() => {
           const nextLevel = levelRef.current + 1;
           if (nextLevel > 100) {
+            // 게임 클리어!
             setGameOver(true); gameOverRef.current = true;
             setRunning(false); runningRef.current = false;
+            setGameCleared(true);
+            localStorage.setItem('pixelShooterCleared', 'true');
+            
+            // F-16 Fighter로 클리어했는지 체크
+            const currentAircraft = selectedAircraftRef.current;
+            if (currentAircraft && currentAircraft.id === 'fighter' && !phoenixUnlocked) {
+              setPhoenixUnlocked(true);
+              localStorage.setItem('phoenixUnlocked', 'true');
+              setShowPhoenixUnlock(true);
+            }
             return;
           }
           setLevel(nextLevel); levelRef.current = nextLevel;
@@ -1860,49 +1946,128 @@ if (reverseTriggered) {
           overflowY: "auto"
         }}>
           <h2 style={{ margin: "0 0 20px 0", color: "#fff", textAlign: "center" }}>✈️ 비행기 선택</h2>
-          <div style={{ display: "flex", flexDirection: "row", gap: 15, justifyContent: "center", flexWrap: "wrap" }}>
-            {aircraftTypes.map((aircraft) => (
-              <div
-                key={aircraft.id}
-                onClick={() => selectAircraft(aircraft.id)}
+          {gameCleared && (
+            <div style={{ 
+              textAlign: "center", 
+              marginBottom: "15px", 
+              padding: "10px", 
+              background: "linear-gradient(90deg, #ff0080, #ff8c00, #40e0d0)",
+              borderRadius: "8px",
+              fontWeight: "bold",
+              fontSize: "14px",
+              color: "#fff",
+              textShadow: "0 0 10px rgba(255,255,255,0.8)"
+            }}>
+              🎉 GAME CLEARED! 축하합니다! 🎉
+            </div>
+          )}
+          {showPhoenixUnlock && (
+            <div style={{
+              marginBottom: "20px",
+              padding: "15px",
+              background: "linear-gradient(135deg, #ff0080 0%, #ff8c00 100%)",
+              borderRadius: "10px",
+              fontSize: "16px",
+              color: "#fff",
+              fontWeight: "bold",
+              textShadow: "0 0 15px rgba(255,255,255,0.8)",
+              animation: "pulse 2s infinite",
+              border: "3px solid #fff",
+              position: "relative"
+            }}>
+              ⭐✨ PHOENIX X-99 UNLOCKED! ✨⭐
+              <div style={{ fontSize: "12px", marginTop: "5px" }}>
+                궁극의 전투기를 획득했습니다!
+              </div>
+              <button 
+                onClick={() => setShowPhoenixUnlock(false)}
                 style={{
-                  padding: "15px",
-                  background: "#333",
-                  border: "2px solid #666",
-                  borderRadius: "8px",
+                  marginTop: "10px",
+                  padding: "5px 15px",
+                  background: "#fff",
+                  color: "#ff0080",
+                  border: "none",
+                  borderRadius: "5px",
                   cursor: "pointer",
-                  transition: "all 0.3s",
-                  minWidth: "180px",
-                  maxWidth: "200px"
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.border = `2px solid ${aircraft.color}`;
-                  e.currentTarget.style.transform = "scale(1.05)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.border = "2px solid #666";
-                  e.currentTarget.style.transform = "scale(1)";
+                  fontWeight: "bold"
                 }}
               >
-                <div style={{ fontSize: "16px", fontWeight: "bold", color: aircraft.color, marginBottom: "8px" }}>
-                  {aircraft.name}
-                </div>
-                <div style={{ fontSize: "12px", color: "#aaa", marginBottom: "10px" }}>
-                  {aircraft.description}
-                </div>
-                <div style={{ fontSize: "11px", textAlign: "left", color: "#ccc" }}>
-                  <div>💖 Lives: {aircraft.stats.lives}</div>
-                  <div>🚀 Speed: {aircraft.stats.moveSpeed}</div>
-                  <div>🔥 Fire Rate: {(1/aircraft.stats.shootCooldown).toFixed(1)}/s</div>
-                  <div>🛡️ Shield: {aircraft.stats.shield}</div>
-                  <div>💥 Attack: {aircraft.stats.attackPower}</div>
-                  <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #555" }}>
-                    <div style={{ color: "#ffff00", fontWeight: "bold" }}>⚡ {aircraft.skillName}</div>
-                    <div style={{ fontSize: "10px", color: "#999" }}>{aircraft.skillDesc}</div>
+                확인
+              </button>
+            </div>
+          )}
+          <div style={{ display: "flex", flexDirection: "row", gap: 15, justifyContent: "center", flexWrap: "wrap" }}>
+            {aircraftTypes.map((aircraft) => {
+              const isLocked = aircraft.locked && !phoenixUnlocked;
+              return (
+                <div
+                  key={aircraft.id}
+                  onClick={() => {
+                    if (!isLocked) {
+                      selectAircraft(aircraft.id);
+                    }
+                  }}
+                  style={{
+                    padding: "15px",
+                    background: isLocked ? "#222" : "#333",
+                    border: `2px solid ${isLocked ? "#444" : "#666"}`,
+                    borderRadius: "8px",
+                    cursor: isLocked ? "not-allowed" : "pointer",
+                    transition: "all 0.3s",
+                    minWidth: "180px",
+                    maxWidth: "200px",
+                    opacity: isLocked ? 0.5 : 1,
+                    position: "relative"
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isLocked) {
+                      e.currentTarget.style.border = `2px solid ${aircraft.color}`;
+                      e.currentTarget.style.transform = "scale(1.05)";
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isLocked) {
+                      e.currentTarget.style.border = "2px solid #666";
+                      e.currentTarget.style.transform = "scale(1)";
+                    }
+                  }}
+                >
+                  {isLocked && (
+                    <div style={{
+                      position: "absolute",
+                      top: "10px",
+                      right: "10px",
+                      fontSize: "24px"
+                    }}>
+                      🔒
+                    </div>
+                  )}
+                  <div style={{ fontSize: "16px", fontWeight: "bold", color: aircraft.color, marginBottom: "8px" }}>
+                    {aircraft.name}
                   </div>
+                  <div style={{ fontSize: "12px", color: "#aaa", marginBottom: "10px" }}>
+                    {aircraft.description}
+                  </div>
+                  {isLocked ? (
+                    <div style={{ fontSize: "11px", color: "#ff6666", fontWeight: "bold", marginTop: "10px" }}>
+                      🔓 {aircraft.unlockCondition}
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: "11px", textAlign: "left", color: "#ccc" }}>
+                      <div>💖 Lives: {aircraft.stats.lives}</div>
+                      <div>🚀 Speed: {aircraft.stats.moveSpeed}</div>
+                      <div>🔥 Fire Rate: {(1/aircraft.stats.shootCooldown).toFixed(1)}/s</div>
+                      <div>🛡️ Shield: {aircraft.stats.shield}</div>
+                      <div>💥 Attack: {aircraft.stats.attackPower}</div>
+                      <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #555" }}>
+                        <div style={{ color: "#ffff00", fontWeight: "bold" }}>⚡ {aircraft.skillName}</div>
+                        <div style={{ fontSize: "10px", color: "#999" }}>{aircraft.skillDesc}</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ) : showLevelSelect ? (
