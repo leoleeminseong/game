@@ -173,6 +173,7 @@ function PixelClassicShooter() {
     return localStorage.getItem('godmodeUnlocked') === 'true';
   });
   const [showGodmodeUnlock, setShowGodmodeUnlock] = useState(false);
+  const [show100Clear, setShow100Clear] = useState(false);
   
   // 각 비행기별 100레벨 클리어 추적
   const [aircraftClears, setAircraftClears] = useState(() => {
@@ -251,23 +252,29 @@ function PixelClassicShooter() {
     function spawnWave(levelNum = 1) {
     const enemies = [];
     const isBossWave = levelNum % 10 === 0;
-    const isPhoenixStage = levelNum > 100; // 피닉스 전용 스테이지 (101-150)
+    const isPhoenixStage = levelNum > 100 && levelNum <= 200; // 피닉스 전용 스테이지 (101-200)
+    const isInfiniteModeLevel = levelNum > 200; // 무한 모드 (201+)
     
     if (isBossWave) {
       const idx = Math.max(0, Math.min(bossDefinitions.length - 1, (Math.floor(levelNum / 10) - 1) % bossDefinitions.length));
       const def = bossDefinitions[idx];
       const bossHeight = 18; // 보스의 높이
       
-      // 피닉스 스테이지 보스는 훨씬 강력함
+      // 보스 체력 설정
       let bossHp;
       if (levelNum === 100) {
         bossHp = 230;
       } else if (levelNum === 200) {
         // 200레벨 최종 보스는 극강의 체력
         bossHp = 2000;
+      } else if (isInfiniteModeLevel) {
+        // 무한 모드 보스는 레벨에 따라 체력 증가 (210: 290, 220: 470...)
+        bossHp = 200 + (levelNum - 200) * 9;
       } else if (isPhoenixStage) {
-        bossHp = 300 + (levelNum - 100) * 8; // 101레벨: 308, 190레벨: 1020
+        // 피닉스 스테이지 보스 (101-190)
+        bossHp = 300 + (levelNum - 100) * 8;
       } else {
+        // 일반 모드 보스 (10-90)
         bossHp = 30 + levelNum * 2;
       }
       
@@ -288,12 +295,26 @@ function PixelClassicShooter() {
       // 🔹 랜덤한 적 패턴 생성
       const patternType = Math.floor(Math.random() * 4); // 0~3 패턴 중 하나
       
-      // 피닉스 스테이지는 적 체력과 수가 대폭 증가
-      const baseEnemyHP = isPhoenixStage 
-        ? 15 + (levelNum - 100) * 1.2  // 101레벨: 16.2, 200레벨: 135
-        : 1 + (levelNum - 1) * 0.25;
+      // 적 체력 설정
+      let baseEnemyHP;
+      let maxEnemies;
+      
+      if (isInfiniteModeLevel) {
+        // 무한 모드: 201레벨부터 시작, 점진적으로 증가
+        // 201레벨: 1 HP, 250레벨: 60 HP, 300레벨: 120 HP...
+        baseEnemyHP = 1 + (levelNum - 201) * 1.2;
+        maxEnemies = Math.min(25, 15 + Math.floor((levelNum - 200) / 10)); // 최대 25마리까지
+      } else if (isPhoenixStage) {
+        // 피닉스 스테이지 (101-200)
+        baseEnemyHP = 15 + (levelNum - 100) * 1.2;
+        maxEnemies = 20;
+      } else {
+        // 일반 모드 (1-100)
+        baseEnemyHP = 1 + (levelNum - 1) * 0.25;
+        maxEnemies = 10;
+      }
+      
       const enemyHP = baseEnemyHP;
-      const maxEnemies = isPhoenixStage ? 20 : 10; // 피닉스 스테이지는 적이 2배
 
       if (patternType === 0) {
         // 💠 기본 격자 패턴
@@ -365,7 +386,9 @@ function PixelClassicShooter() {
 
   function applyUpgrade(type) {
     setShowUpgrade(false);
+    showUpgradeRef.current = false;
     setRunning(true);
+    runningRef.current = true;
 
     if (type === "speed") {
       setPlayerStats((p) => { const nv = { ...p, moveSpeed: p.moveSpeed + 10 }; playerStatsRef.current = nv; return nv; });
@@ -1969,15 +1992,17 @@ if (reverseTriggered) {
       if (st.enemies.length === 0 && !st.nextWaveScheduled) {
         st.nextWaveScheduled = true;
         setTimeout(() => {
-          const nextLevel = levelRef.current + 1;
+          const currentLevel = levelRef.current;
+          const nextLevel = currentLevel + 1;
           const currentAircraft = selectedAircraftRef.current;
           
-          // 피닉스 X-99가 아닌 경우 100레벨에서 종료
-          if (nextLevel > 100 && (!currentAircraft || currentAircraft.id !== 'phoenix' && currentAircraft.id !== 'godmode')) {
-            // 게임 클리어!
+          // 피닉스/갓모드가 아닌 경우 100레벨 클리어 시 종료
+          if (currentLevel >= 100 && (!currentAircraft || currentAircraft.id !== 'phoenix' && currentAircraft.id !== 'godmode')) {
+            // 게임 클리어! - 업그레이드 창 없이 바로 클리어
             setGameOver(true); gameOverRef.current = true;
             setRunning(false); runningRef.current = false;
             setGameCleared(true);
+            setShow100Clear(true); // 100레벨 클리어 팝업 표시
             localStorage.setItem('pixelShooterCleared', 'true');
             
             // 각 비행기별 100레벨 클리어 기록
@@ -2000,6 +2025,8 @@ if (reverseTriggered) {
             }
             return;
           }
+          
+          // 피닉스/갓모드는 100레벨 넘어서 계속 진행 가능
           
           // Divine Destroyer는 무한 모드 (200레벨 이후에도 계속 진행)
           // 피닉스는 200레벨에서 종료
@@ -2056,7 +2083,6 @@ if (reverseTriggered) {
 
   // ----- choose upgrade from UI -----
   function chooseUpgrade(u) {
-    playSound('powerup');
     applyUpgrade(u);
   }
 
@@ -2067,7 +2093,13 @@ if (reverseTriggered) {
       setSelectedAircraft(aircraft);
       selectedAircraftRef.current = aircraft;
       setShowAircraftSelect(false);
-      setShowLevelSelect(true);
+      
+      // 무한 모드면 레벨 선택 없이 바로 201레벨 시작
+      if (isInfiniteMode) {
+        startGameAtLevel(201);
+      } else {
+        setShowLevelSelect(true);
+      }
     }
   }
 
@@ -2269,55 +2301,37 @@ if (reverseTriggered) {
             {/* Infinite Mode */}
             <button
               onClick={() => {
-                if (!godmodeUnlocked) {
-                  alert("무한 모드는 신의 파괴자를 해금해야 플레이할 수 있습니다!\n\n해금 조건:\n- 200 레벨 클리어\n- 모든 기본 비행기로 100 레벨 클리어");
-                  return;
-                }
                 setIsInfiniteMode(true);
-                setSelectedAircraft("godmode");
                 setShowModeSelect(false);
-                setShowLevelSelect(true);
+                setShowAircraftSelect(true);
               }}
-              disabled={!godmodeUnlocked}
               style={{
                 padding: "25px",
-                background: godmodeUnlocked 
-                  ? "linear-gradient(135deg, #dc2626 0%, #991b1b 100%)" 
-                  : "linear-gradient(135deg, #4b5563 0%, #374151 100%)",
+                background: "linear-gradient(135deg, #dc2626 0%, #991b1b 100%)",
                 color: "#fff",
-                border: godmodeUnlocked ? "3px solid #991b1b" : "3px solid #374151",
+                border: "3px solid #991b1b",
                 borderRadius: "15px",
-                cursor: godmodeUnlocked ? "pointer" : "not-allowed",
+                cursor: "pointer",
                 fontSize: "18px",
                 fontWeight: "bold",
                 textAlign: "left",
-                opacity: godmodeUnlocked ? 1 : 0.5,
                 transition: "all 0.3s"
               }}
               onMouseEnter={(e) => {
-                if (godmodeUnlocked) {
-                  e.currentTarget.style.background = "linear-gradient(135deg, #991b1b 0%, #dc2626 100%)";
-                  e.currentTarget.style.transform = "scale(1.05)";
-                }
+                e.currentTarget.style.background = "linear-gradient(135deg, #991b1b 0%, #dc2626 100%)";
+                e.currentTarget.style.transform = "scale(1.05)";
               }}
               onMouseLeave={(e) => {
-                if (godmodeUnlocked) {
-                  e.currentTarget.style.background = "linear-gradient(135deg, #dc2626 0%, #991b1b 100%)";
-                  e.currentTarget.style.transform = "scale(1)";
-                }
+                e.currentTarget.style.background = "linear-gradient(135deg, #dc2626 0%, #991b1b 100%)";
+                e.currentTarget.style.transform = "scale(1)";
               }}
             >
               <div style={{ fontSize: "24px", marginBottom: "10px" }}>
-                ♾️ 무한 모드 {!godmodeUnlocked && "🔒"}
+                ♾️ 무한 모드
               </div>
               <div style={{ fontSize: "14px", opacity: 0.9 }}>• 레벨 201부터 시작</div>
-              <div style={{ fontSize: "14px", opacity: 0.9 }}>• 신의 파괴자 전용 무한 스테이지</div>
+              <div style={{ fontSize: "14px", opacity: 0.9 }}>• 모든 비행기 사용 가능</div>
               <div style={{ fontSize: "14px", opacity: 0.9 }}>• 끝없는 도전과 최고 기록 갱신</div>
-              {!godmodeUnlocked && (
-                <div style={{ fontSize: "12px", color: "#fbbf24", marginTop: "10px" }}>
-                  🔓 해금: 200레벨 + 모든 기본 비행기 100레벨 클리어
-                </div>
-              )}
             </button>
           </div>
           
@@ -2554,6 +2568,46 @@ if (reverseTriggered) {
               textShadow: "0 0 10px rgba(255,255,255,0.8)"
             }}>
               🎉 GAME CLEARED! 축하합니다! 🎉
+            </div>
+          )}
+          {show100Clear && (
+            <div style={{
+              marginBottom: "20px",
+              padding: "20px",
+              background: "linear-gradient(135deg, #4CAF50 0%, #45a049 100%)",
+              borderRadius: "15px",
+              fontSize: "20px",
+              color: "#000",
+              fontWeight: "bold",
+              textShadow: "0 0 20px rgba(255,255,255,0.8)",
+              animation: "pulse 2s infinite",
+              border: "4px solid #fff",
+              position: "relative",
+              boxShadow: "0 0 30px rgba(76,175,80,0.8)"
+            }}>
+              🎉🏆 LEVEL 100 CLEARED! 🏆🎉
+              <div style={{ fontSize: "16px", marginTop: "10px" }}>
+                {selectedAircraft && selectedAircraft.name}로 100레벨 정복!
+              </div>
+              <div style={{ fontSize: "13px", marginTop: "8px", opacity: 0.9 }}>
+                축하합니다! 게임을 클리어했습니다!
+              </div>
+              <button 
+                onClick={() => setShow100Clear(false)}
+                style={{
+                  marginTop: "15px",
+                  padding: "10px 25px",
+                  background: "#fff",
+                  color: "#4CAF50",
+                  border: "2px solid #4CAF50",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
+                  fontSize: "14px"
+                }}
+              >
+                확인
+              </button>
             </div>
           )}
           {showPhoenixUnlock && (
@@ -2897,7 +2951,7 @@ if (reverseTriggered) {
 
       {gameOver && (
         <div style={{ marginTop: 10, color: "#f66", fontWeight: "bold" }}>
-          {level > 100 ? "YOU WIN! GAME CLEAR 🎉" : "GAME OVER"} — Press Enter to restart
+          {gameCleared ? "🎉 YOU WIN! GAME CLEAR 🎉" : "GAME OVER"} — Press Enter to restart
         </div>
       )}
 
