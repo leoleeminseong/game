@@ -84,9 +84,9 @@ const aircraftTypes = [
   {
     id: "phoenix",
     name: "PHOENIX X-99",
-    description: "⭐ 궁극의 전투기 ⭐",
+    description: "⭐ 궁극의 전투기 ⭐ (101-150 전용)",
     skillName: "Phoenix Storm",
-    skillDesc: "전방위 섬멸 공격",
+    skillDesc: "전방위 섬멸 공격 + 150레벨까지 진행 가능",
     color: "#ff0080",
     locked: true,
     unlockCondition: "F-16 Fighter로 100레벨 클리어",
@@ -203,27 +203,46 @@ function PixelClassicShooter() {
     function spawnWave(levelNum = 1) {
     const enemies = [];
     const isBossWave = levelNum % 10 === 0;
+    const isPhoenixStage = levelNum > 100; // 피닉스 전용 스테이지 (101-150)
+    
     if (isBossWave) {
       const idx = Math.max(0, Math.min(bossDefinitions.length - 1, (Math.floor(levelNum / 10) - 1) % bossDefinitions.length));
       const def = bossDefinitions[idx];
       const bossHeight = 18; // 보스의 높이
+      
+      // 피닉스 스테이지 보스는 훨씬 강력함
+      let bossHp;
+      if (levelNum === 100) {
+        bossHp = 230;
+      } else if (isPhoenixStage) {
+        bossHp = 300 + (levelNum - 100) * 5; // 101레벨: 305, 150레벨: 550
+      } else {
+        bossHp = 30 + levelNum * 2;
+      }
+      
       enemies.push({
         x: PIXEL_W / 2 - 15,
         y: 45 + bossHeight, // 보스 높이를 더 아래로 조정
         w: 30,
         h: bossHeight,
         dir: 1,
-        hp: 30 + levelNum * 2,
-        baseHp: 30 + levelNum * 2,
+        hp: bossHp,
+        baseHp: bossHp,
         boss: true,
-        name: def.name,
+        name: isPhoenixStage ? "⭐ " + def.name + " ⭐" : def.name,
         skill: def.skill,
         skillCooldown: 0
       });
     } else {
       // 🔹 랜덤한 적 패턴 생성
       const patternType = Math.floor(Math.random() * 4); // 0~3 패턴 중 하나
-      const enemyHP = 1 + (levelNum - 1) * 0.25;
+      
+      // 피닉스 스테이지는 적 체력과 수가 대폭 증가
+      const baseEnemyHP = isPhoenixStage 
+        ? 15 + (levelNum - 100) * 0.8  // 101레벨: 15.8, 150레벨: 55
+        : 1 + (levelNum - 1) * 0.25;
+      const enemyHP = baseEnemyHP;
+      const maxEnemies = isPhoenixStage ? 20 : 10; // 피닉스 스테이지는 적이 2배
 
       if (patternType === 0) {
         // 💠 기본 격자 패턴
@@ -231,10 +250,10 @@ function PixelClassicShooter() {
         const rows = Math.min(2, 1 + Math.floor(levelNum / 3));
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
-            if (enemies.length >= 10) break;
+            if (enemies.length >= maxEnemies) break;
             enemies.push({ x: 8 + c * 18, y: 8 + r * 14, w: 8, h: 6, dir: 1, hp: enemyHP, baseHp: enemyHP, boss: false });
           }
-          if (enemies.length >= 10) break;
+          if (enemies.length >= maxEnemies) break;
         }
       } else if (patternType === 1) {
         // 🔹 삼각형 형태
@@ -243,10 +262,10 @@ function PixelClassicShooter() {
           const count = r + 1;
           const startX = (PIXEL_W / 2) - (count * 9);
           for (let c = 0; c < count; c++) {
-            if (enemies.length >= 10) break;
+            if (enemies.length >= maxEnemies) break;
             enemies.push({ x: startX + c * 18, y: 10 + r * 14, w: 8, h: 6, dir: 1, hp: enemyHP, baseHp: enemyHP, boss: false });
           }
-          if (enemies.length >= 10) break;
+          if (enemies.length >= maxEnemies) break;
         }
       } else if (patternType === 2) {
         // 🔸 지그재그 형태
@@ -254,17 +273,17 @@ function PixelClassicShooter() {
         const cols = 2;
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
-            if (enemies.length >= 10) break;
+            if (enemies.length >= maxEnemies) break;
             const offset = (r % 2) * 9;
             enemies.push({ x: 10 + c * 18 + offset, y: 10 + r * 14, w: 8, h: 6, dir: 1, hp: enemyHP, baseHp: enemyHP, boss: false });
           }
-          if (enemies.length >= 10) break;
+          if (enemies.length >= maxEnemies) break;
         }
       } else {
         // 🔹 랜덤 스프레드 형태
-        const count = Math.min(10, 3 + Math.floor(levelNum / 2));
+        const count = Math.min(maxEnemies, 3 + Math.floor(levelNum / 2));
         for (let i = 0; i < count; i++) {
-          if (enemies.length >= 10) break;
+          if (enemies.length >= maxEnemies) break;
           enemies.push({
             x: Math.random() * (PIXEL_W - 10),
             y: 8 + Math.random() * 40,
@@ -944,7 +963,8 @@ function PixelClassicShooter() {
               dy: 0,
               laser: true,
               laserDuration: 1.0,
-              followPlayer: false,
+              followPlayer: true,
+              laserOffset: i * 20,
               color: "#ff0080"
             });
           }
@@ -1118,7 +1138,7 @@ function PixelClassicShooter() {
           }
           // 플레이어 위치를 따라다님
           if (b.followPlayer) {
-            b.x = p.x + p.w / 2 - 2;
+            b.x = p.x + p.w / 2 - 2 + (b.laserOffset || 0);
             b.h = p.y; // 플레이어까지의 높이
           }
           continue;
@@ -1812,7 +1832,10 @@ if (reverseTriggered) {
         st.nextWaveScheduled = true;
         setTimeout(() => {
           const nextLevel = levelRef.current + 1;
-          if (nextLevel > 100) {
+          const currentAircraft = selectedAircraftRef.current;
+          
+          // 피닉스 X-99가 아닌 경우 100레벨에서 종료
+          if (nextLevel > 100 && (!currentAircraft || currentAircraft.id !== 'phoenix')) {
             // 게임 클리어!
             setGameOver(true); gameOverRef.current = true;
             setRunning(false); runningRef.current = false;
@@ -1820,7 +1843,6 @@ if (reverseTriggered) {
             localStorage.setItem('pixelShooterCleared', 'true');
             
             // F-16 Fighter로 클리어했는지 체크
-            const currentAircraft = selectedAircraftRef.current;
             if (currentAircraft && currentAircraft.id === 'fighter' && !phoenixUnlocked) {
               setPhoenixUnlocked(true);
               localStorage.setItem('phoenixUnlocked', 'true');
@@ -1828,6 +1850,18 @@ if (reverseTriggered) {
             }
             return;
           }
+          
+          // 피닉스 X-99인 경우 150레벨까지 진행 가능
+          if (nextLevel > 150) {
+            // 피닉스 전용 스테이지 완전 클리어!
+            setGameOver(true); gameOverRef.current = true;
+            setRunning(false); runningRef.current = false;
+            setGameCleared(true);
+            localStorage.setItem('pixelShooterCleared', 'true');
+            localStorage.setItem('phoenixStageCleared', 'true');
+            return;
+          }
+          
           setLevel(nextLevel); levelRef.current = nextLevel;
 
           // every 5 waves show upgrades, except if it's a boss wave (10,20,...)
@@ -1946,6 +1980,86 @@ if (reverseTriggered) {
           overflowY: "auto"
         }}>
           <h2 style={{ margin: "0 0 20px 0", color: "#fff", textAlign: "center" }}>✈️ 비행기 선택</h2>
+          
+          {/* 저장/불러오기/리셋 버튼 */}
+          <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "20px" }}>
+            <button
+              onClick={() => {
+                const saveData = {
+                  gameCleared: gameCleared,
+                  phoenixUnlocked: phoenixUnlocked
+                };
+                localStorage.setItem('pixelShooterSave', JSON.stringify(saveData));
+                alert('💾 게임이 저장되었습니다!');
+              }}
+              style={{
+                padding: "8px 15px",
+                background: "#4CAF50",
+                color: "#fff",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: "bold"
+              }}
+            >
+              💾 저장
+            </button>
+            <button
+              onClick={() => {
+                const saved = localStorage.getItem('pixelShooterSave');
+                if (saved) {
+                  const saveData = JSON.parse(saved);
+                  setGameCleared(saveData.gameCleared || false);
+                  setPhoenixUnlocked(saveData.phoenixUnlocked || false);
+                  localStorage.setItem('pixelShooterCleared', saveData.gameCleared ? 'true' : 'false');
+                  localStorage.setItem('phoenixUnlocked', saveData.phoenixUnlocked ? 'true' : 'false');
+                  alert('📂 저장된 게임을 불러왔습니다!');
+                } else {
+                  alert('❌ 저장된 데이터가 없습니다!');
+                }
+              }}
+              style={{
+                padding: "8px 15px",
+                background: "#2196F3",
+                color: "#fff",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: "bold"
+              }}
+            >
+              📂 불러오기
+            </button>
+            <button
+              onClick={() => {
+                if (confirm('⚠️ 모든 진행 상황이 초기화됩니다. 계속하시겠습니까?')) {
+                  localStorage.removeItem('pixelShooterCleared');
+                  localStorage.removeItem('phoenixUnlocked');
+                  localStorage.removeItem('phoenixStageCleared');
+                  localStorage.removeItem('pixelShooterSave');
+                  setGameCleared(false);
+                  setPhoenixUnlocked(false);
+                  setShowPhoenixUnlock(false);
+                  alert('🔄 게임이 초기화되었습니다!');
+                }
+              }}
+              style={{
+                padding: "8px 15px",
+                background: "#f44336",
+                color: "#fff",
+                border: "none",
+                borderRadius: "5px",
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: "bold"
+              }}
+            >
+              🔄 리셋
+            </button>
+          </div>
+          
           {gameCleared && (
             <div style={{ 
               textAlign: "center", 
@@ -2083,24 +2197,38 @@ if (reverseTriggered) {
           zIndex: 100
         }}>
           <h2 style={{ margin: "0 0 20px 0", color: "#fff" }}>레벨 선택</h2>
+          {phoenixUnlocked && (
+            <div style={{ marginBottom: "10px", padding: "8px", background: "#ff0080", borderRadius: "5px", fontSize: "12px", fontWeight: "bold" }}>
+              ⭐ 피닉스 전용 스테이지 (101-150) 해금됨!
+            </div>
+          )}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 5, marginBottom: 20, maxHeight: "400px", overflowY: "auto" }}>
-            {[...Array(100)].map((_, i) => (
-              <button
-                key={i}
-                onClick={() => startGameAtLevel(i + 1)}
-                style={{
-                  padding: "8px",
-                  background: "#333",
-                  color: "#fff",
-                  border: "1px solid #666",
-                  borderRadius: "4px",
-                  cursor: "pointer",
-                  fontSize: "11px" // 버튼 크기 조정을 위해 글자 크기 줄임
-                }}
-              >
-                {i + 1}
-              </button>
-            ))}
+            {[...Array(150)].map((_, i) => {
+              const levelNum = i + 1;
+              const isPhoenixStage = levelNum > 100;
+              const isLocked = isPhoenixStage && !phoenixUnlocked;
+              
+              return (
+                <button
+                  key={i}
+                  onClick={() => !isLocked && startGameAtLevel(levelNum)}
+                  style={{
+                    padding: "8px",
+                    background: isPhoenixStage ? (isLocked ? "#333" : "#ff0080") : "#333",
+                    color: isLocked ? "#666" : "#fff",
+                    border: isPhoenixStage ? "1px solid #ff0080" : "1px solid #666",
+                    borderRadius: "4px",
+                    cursor: isLocked ? "not-allowed" : "pointer",
+                    fontSize: "11px",
+                    fontWeight: isPhoenixStage ? "bold" : "normal",
+                    opacity: isLocked ? 0.3 : 1
+                  }}
+                  disabled={isLocked}
+                >
+                  {isLocked ? "🔒" : levelNum}
+                </button>
+              );
+            })}
           </div>
         </div>
       ) : (
