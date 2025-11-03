@@ -144,6 +144,7 @@ function PixelClassicShooter() {
   const [showAircraftSelect, setShowAircraftSelect] = useState(false);
   const [showMainMenu, setShowMainMenu] = useState(true);
   const [showNameInput, setShowNameInput] = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [playerName, setPlayerName] = useState(() => {
     return localStorage.getItem('playerName') || '';
   });
@@ -151,6 +152,12 @@ function PixelClassicShooter() {
   const [showModeSelect, setShowModeSelect] = useState(false);
   const [selectedAircraft, setSelectedAircraft] = useState(null);
   const [isInfiniteMode, setIsInfiniteMode] = useState(false);
+  
+  // 리더보드 데이터
+  const [leaderboardData, setLeaderboardData] = useState(() => {
+    const saved = localStorage.getItem('leaderboard');
+    return saved ? JSON.parse(saved) : [];
+  });
   
   // 번역 - 기본 언어: 영어
   const lang = 'en';
@@ -172,6 +179,27 @@ function PixelClassicShooter() {
   });
   const [showGodmodeUnlock, setShowGodmodeUnlock] = useState(false);
   const [show100Clear, setShow100Clear] = useState(false);
+  
+  // 리더보드에 기록 추가
+  const addToLeaderboard = (level, aircraft, mode) => {
+    if (!playerName) return;
+    
+    const newRecord = {
+      name: playerName,
+      level: level,
+      aircraft: aircraft.name,
+      mode: mode,
+      date: new Date().toISOString(),
+      timestamp: Date.now()
+    };
+    
+    const updated = [...leaderboardData, newRecord]
+      .sort((a, b) => b.level - a.level)
+      .slice(0, 50); // 상위 50개만 저장
+    
+    setLeaderboardData(updated);
+    localStorage.setItem('leaderboard', JSON.stringify(updated));
+  };
   
   // 각 비행기별 100레벨 클리어 추적
   const [aircraftClears, setAircraftClears] = useState(() => {
@@ -2051,6 +2079,8 @@ if (reverseTriggered) {
             if (nv <= 0) {
               setGameOver(true); gameOverRef.current = true;
               setRunning(false); runningRef.current = false;
+              // 게임 오버 시 리더보드 기록
+              addToLeaderboard(levelRef.current, selectedAircraft, isInfiniteMode ? 'Infinite' : 'Normal');
             }
             return Math.max(0, nv);
           });
@@ -2076,6 +2106,8 @@ if (reverseTriggered) {
             gameOverRef.current = true;
             setRunning(false); 
             runningRef.current = false;
+            // 게임 오버 시 리더보드 기록
+            addToLeaderboard(levelRef.current, selectedAircraft, isInfiniteMode ? 'Infinite' : 'Normal');
           }
           return Math.max(0, nv);
         });
@@ -2098,6 +2130,8 @@ if (reverseTriggered) {
             setGameCleared(true);
             setShow100Clear(true); // 100레벨 클리어 팝업 표시
             localStorage.setItem('pixelShooterCleared', 'true');
+            // 리더보드 기록
+            addToLeaderboard(currentLevel, currentAircraft, isInfiniteMode ? 'Infinite' : 'Normal');
             
             // 각 비행기별 100레벨 클리어 기록
             if (currentAircraft) {
@@ -2131,6 +2165,8 @@ if (reverseTriggered) {
             setGameCleared(true);
             localStorage.setItem('pixelShooterCleared', 'true');
             localStorage.setItem('phoenixStageCleared', 'true');
+            // 리더보드 기록
+            addToLeaderboard(currentLevel, currentAircraft, isInfiniteMode ? 'Infinite' : 'Normal');
             
             // Divine Destroyer 해금 체크: 200레벨 클리어 + 모든 비행기로 100레벨 클리어
             const allAircraftCleared = Object.values(aircraftClears).every(v => v === true);
@@ -2313,6 +2349,34 @@ if (reverseTriggered) {
             >
               🎮 Start Game
             </button>
+            
+            <button
+              onClick={() => {
+                setShowMainMenu(false);
+                setShowLeaderboard(true);
+              }}
+              style={{
+                padding: "15px 30px",
+                background: "linear-gradient(135deg, #0f3460 0%, #16213e 100%)",
+                color: "#fff",
+                border: "2px solid #0f3460",
+                borderRadius: "10px",
+                cursor: "pointer",
+                fontSize: "18px",
+                fontWeight: "bold",
+                transition: "all 0.3s"
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "linear-gradient(135deg, #16213e 0%, #0f3460 100%)";
+                e.currentTarget.style.transform = "scale(1.05)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "linear-gradient(135deg, #0f3460 0%, #16213e 100%)";
+                e.currentTarget.style.transform = "scale(1)";
+              }}
+            >
+              🏆 Leaderboard
+            </button>
           </div>
           
           <div style={{ marginTop: "30px", fontSize: "12px", color: "#aaa" }}>
@@ -2343,6 +2407,152 @@ if (reverseTriggered) {
               </button>
             </div>
           )}
+        </div>
+      ) : showLeaderboard ? (
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
+          padding: "40px 50px",
+          borderRadius: "20px",
+          border: "3px solid #0f3460",
+          zIndex: 100,
+          boxShadow: "0 0 40px rgba(15, 52, 96, 0.8)",
+          minWidth: "600px",
+          maxHeight: "80vh",
+          overflowY: "auto"
+        }}>
+          <h2 style={{ 
+            margin: "0 0 20px 0", 
+            color: "#fff", 
+            fontSize: "28px",
+            textAlign: "center",
+            textShadow: "0 0 20px rgba(255,255,255,0.5)"
+          }}>
+            🏆 LEADERBOARD 🏆
+          </h2>
+          
+          {leaderboardData.length === 0 ? (
+            <div style={{ 
+              textAlign: "center", 
+              color: "#aaa", 
+              padding: "40px 20px",
+              fontSize: "16px"
+            }}>
+              No records yet. Play to set your first record!
+            </div>
+          ) : (
+            <div style={{ marginBottom: "20px" }}>
+              <table style={{ 
+                width: "100%", 
+                borderCollapse: "collapse",
+                color: "#fff"
+              }}>
+                <thead>
+                  <tr style={{ 
+                    background: "#0f3460",
+                    borderBottom: "2px solid #16213e"
+                  }}>
+                    <th style={{ padding: "10px", textAlign: "center", fontSize: "14px" }}>Rank</th>
+                    <th style={{ padding: "10px", textAlign: "left", fontSize: "14px" }}>Player</th>
+                    <th style={{ padding: "10px", textAlign: "center", fontSize: "14px" }}>Level</th>
+                    <th style={{ padding: "10px", textAlign: "left", fontSize: "14px" }}>Aircraft</th>
+                    <th style={{ padding: "10px", textAlign: "center", fontSize: "14px" }}>Mode</th>
+                    <th style={{ padding: "10px", textAlign: "center", fontSize: "14px" }}>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {leaderboardData.map((record, idx) => {
+                    const isCurrentPlayer = record.name === playerName;
+                    const rankColor = idx === 0 ? "#FFD700" : idx === 1 ? "#C0C0C0" : idx === 2 ? "#CD7F32" : "#fff";
+                    const rankIcon = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : "";
+                    
+                    return (
+                      <tr key={idx} style={{ 
+                        background: isCurrentPlayer ? "rgba(255, 215, 0, 0.1)" : idx % 2 === 0 ? "rgba(15, 52, 96, 0.3)" : "transparent",
+                        borderBottom: "1px solid rgba(255,255,255,0.1)"
+                      }}>
+                        <td style={{ 
+                          padding: "10px", 
+                          textAlign: "center",
+                          color: rankColor,
+                          fontWeight: "bold",
+                          fontSize: "14px"
+                        }}>
+                          {rankIcon} {idx + 1}
+                        </td>
+                        <td style={{ 
+                          padding: "10px", 
+                          textAlign: "left",
+                          color: isCurrentPlayer ? "#0ff" : "#fff",
+                          fontWeight: isCurrentPlayer ? "bold" : "normal",
+                          fontSize: "13px"
+                        }}>
+                          {isCurrentPlayer ? "👤 " : ""}{record.name}
+                        </td>
+                        <td style={{ 
+                          padding: "10px", 
+                          textAlign: "center",
+                          color: "#ffff00",
+                          fontWeight: "bold",
+                          fontSize: "14px"
+                        }}>
+                          {record.level}
+                        </td>
+                        <td style={{ 
+                          padding: "10px", 
+                          textAlign: "left",
+                          fontSize: "12px",
+                          color: "#ccc"
+                        }}>
+                          {record.aircraft}
+                        </td>
+                        <td style={{ 
+                          padding: "10px", 
+                          textAlign: "center",
+                          fontSize: "12px",
+                          color: record.mode === 'Infinite' ? "#ff8800" : "#4CAF50"
+                        }}>
+                          {record.mode === 'Infinite' ? "♾️" : "🎯"} {record.mode}
+                        </td>
+                        <td style={{ 
+                          padding: "10px", 
+                          textAlign: "center",
+                          fontSize: "11px",
+                          color: "#999"
+                        }}>
+                          {new Date(record.date).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+          
+          <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "20px" }}>
+            <button
+              onClick={() => {
+                setShowLeaderboard(false);
+                setShowMainMenu(true);
+              }}
+              style={{
+                padding: "10px 20px",
+                background: "#4CAF50",
+                color: "#fff",
+                border: "2px solid #45a049",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "bold"
+              }}
+            >
+              ← Back to Menu
+            </button>
+          </div>
         </div>
       ) : showNameInput ? (
         <div style={{
