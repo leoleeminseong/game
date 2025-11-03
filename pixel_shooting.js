@@ -1,7 +1,6 @@
 const bossSpecialUpgrades = [
   "megaAttack",   // 공격력 +3
   "superShield",  // 방어막 +5
-  "doubleFire",   // 두 발씩 발사
   "diagonalShot", // 대각선 방향으로 발사
   ];
 
@@ -11,6 +10,8 @@ const aircraftTypes = [
     id: "fighter",
     name: "F-16 Fighter",
     description: "균형잡힌 전투기",
+    skillName: "Missile Barrage",
+    skillDesc: "전방 5발 미사일",
     color: "#66d9ff",
     stats: {
       lives: 10,
@@ -24,6 +25,8 @@ const aircraftTypes = [
     id: "bomber",
     name: "B-52 Bomber",
     description: "강력한 화력, 느린 속도",
+    skillName: "Carpet Bomb",
+    skillDesc: "광역 폭격",
     color: "#ff9966",
     stats: {
       lives: 12,
@@ -37,6 +40,8 @@ const aircraftTypes = [
     id: "stealth",
     name: "Stealth Fighter",
     description: "빠른 속도, 낮은 체력",
+    skillName: "Stealth Mode",
+    skillDesc: "무적 + 고속이동",
     color: "#9966ff",
     stats: {
       lives: 7,
@@ -50,6 +55,8 @@ const aircraftTypes = [
     id: "interceptor",
     name: "Interceptor",
     description: "초고속 연사",
+    skillName: "Laser Beam",
+    skillDesc: "관통 레이저",
     color: "#ffff66",
     stats: {
       lives: 8,
@@ -63,6 +70,8 @@ const aircraftTypes = [
     id: "tank",
     name: "Flying Fortress",
     description: "최고 방어력, 느린 공격",
+    skillName: "Shield Burst",
+    skillDesc: "전방위 총알",
     color: "#66ff66",
     stats: {
       lives: 15,
@@ -334,10 +343,6 @@ function PixelClassicShooter() {
       });
   
     }
-    if (type === "doubleFire") {
-      // 더블샷 모드 활성화
-      playerStatsRef.current.doubleFire = true;
-    }
     if (type === "diagonalShot") {
       // 대각선 공격 모드 활성화
       playerStatsRef.current.diagonalShot = true;
@@ -464,6 +469,12 @@ function PixelClassicShooter() {
       const aircraft = selectedAircraftRef.current || aircraftTypes[0];
       const baseColor = aircraft.color;
       
+      // 스텔스 모드일 때 반투명 효과
+      ctx.save();
+      if (playerStatsRef.current.stealthActive) {
+        ctx.globalAlpha = 0.4;
+      }
+      
       // Base color
       ctx.fillStyle = hitFlashRef.current ? "#ff3333" : baseColor;
       
@@ -485,6 +496,8 @@ function PixelClassicShooter() {
       ctx.fillStyle = lighterColor;
       ctx.fillRect(p.x + 3, p.y + 1, 2, 2);
       
+      ctx.restore();
+      
       // Shield effect
       if (playerStatsRef.current.shield > 0) {
         ctx.strokeStyle = "#00ffff";
@@ -493,8 +506,44 @@ function PixelClassicShooter() {
 
       // bullets
       for (const b of st.bullets) {
-        ctx.fillStyle = b.color || "#ffff66";
-        ctx.fillRect(b.x, b.y, b.w, b.h);
+        if (b.laser) {
+          // 레이저 렌더링 (수직 레이저)
+          ctx.save();
+          const gradient = ctx.createLinearGradient(b.x, 0, b.x + b.w, 0);
+          gradient.addColorStop(0, "rgba(0, 255, 255, 0.3)");
+          gradient.addColorStop(0.5, "rgba(0, 255, 255, 1)");
+          gradient.addColorStop(1, "rgba(0, 255, 255, 0.3)");
+          ctx.fillStyle = gradient;
+          ctx.fillRect(b.x, 0, b.w, b.h);
+          
+          // 레이저 글로우 효과
+          ctx.globalAlpha = 0.5;
+          ctx.fillRect(b.x - 1, 0, b.w + 2, b.h);
+          ctx.restore();
+        } else if (b.missile) {
+          // 미사일 (빨간색, 더 크고 강력해 보이게)
+          ctx.fillStyle = "#ff0000";
+          ctx.fillRect(b.x, b.y, b.w, b.h);
+          ctx.fillStyle = "#ff8800";
+          ctx.fillRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2);
+        } else if (b.bomb) {
+          // 폭탄 (검은색 폭탄)
+          ctx.fillStyle = "#333333";
+          ctx.fillRect(b.x, b.y, b.w, b.h);
+          ctx.fillStyle = "#666666";
+          ctx.fillRect(b.x + 1, b.y + 1, b.w - 2, b.h - 2);
+        } else if (b.shield) {
+          // 보호막 (파란색 반투명)
+          ctx.save();
+          ctx.globalAlpha = 0.7;
+          ctx.fillStyle = "#00aaff";
+          ctx.fillRect(b.x, b.y, b.w, b.h);
+          ctx.restore();
+        } else {
+          // 일반 총알
+          ctx.fillStyle = b.color || "#ffff66";
+          ctx.fillRect(b.x, b.y, b.w, b.h);
+        }
       }
       for (const b of st.enemyBullets) {
         ctx.fillStyle = b.color || "#ff6666";
@@ -677,6 +726,25 @@ function PixelClassicShooter() {
       ctx.font = "8px monospace";
       ctx.fillText(`LIVES:${livesRef.current}`, PIXEL_W - 62, 10);
       ctx.fillText(`LEVEL:${levelRef.current}`, PIXEL_W / 2 - 20, 10);
+      
+      // 스킬 쿨다운 표시
+      const skillCooldown = playerStatsRef.current.skillCooldown || 0;
+      if (skillCooldown > 0) {
+        ctx.fillStyle = "#ff8800";
+        ctx.fillText(`SKILL: ${skillCooldown.toFixed(1)}s`, 5, 20);
+      } else {
+        ctx.fillStyle = "#00ff00";
+        ctx.fillText(`SKILL: READY [W]`, 5, 20);
+      }
+      
+      // 스텔스 모드 표시
+      if (playerStatsRef.current.stealthActive) {
+        ctx.fillStyle = "#ff00ff";
+        ctx.font = "bold 10px monospace";
+        ctx.fillText(`STEALTH MODE!`, PIXEL_W / 2 - 35, PIXEL_H - 20);
+        ctx.font = "8px monospace";
+        ctx.fillText(`${playerStatsRef.current.stealthDuration.toFixed(1)}s`, PIXEL_W / 2 - 10, PIXEL_H - 10);
+      }
 
       // game over overlay
       if (gameOverRef.current) {
@@ -715,6 +783,99 @@ function PixelClassicShooter() {
       // shooting
       st.player.cooldown -= dt / 1000;
       
+      // 스킬 쿨다운 감소
+      if (playerStatsRef.current.skillCooldown > 0) {
+        playerStatsRef.current.skillCooldown -= dt / 1000;
+      }
+      
+      // W키로 고유 스킬 발동
+      if ((keysRef.current["w"] || keysRef.current["W"]) && playerStatsRef.current.skillCooldown <= 0) {
+        const aircraftId = playerStatsRef.current.aircraftId;
+        console.log("스킬 발동:", aircraftId);
+        
+        if (aircraftId === "fighter") {
+          // Missile Barrage: 전방 5발 미사일 발사
+          console.log("Fighter 미사일 발사!");
+          for (let i = 0; i < 5; i++) {
+            st.bullets.push({ 
+              x: p.x + p.w / 2 - 1 + (i - 2) * 4, 
+              y: p.y - 4, 
+              w: 3, 
+              h: 6, 
+              dy: -150,
+              missile: true
+            });
+          }
+          playerStatsRef.current.skillCooldown = 8;
+        } 
+        else if (aircraftId === "bomber") {
+          // Carpet Bomb: 광역 폭격 (전방에 폭탄 투하)
+          console.log("Bomber 폭탄 발사!");
+          for (let i = 0; i < 3; i++) {
+            st.bullets.push({ 
+              x: p.x + p.w / 2 - 2 + (i - 1) * 8, 
+              y: p.y - 10, 
+              w: 4, 
+              h: 4, 
+              dy: -100,
+              bomb: true,
+              bombRadius: 25
+            });
+          }
+          playerStatsRef.current.skillCooldown = 10;
+        }
+        else if (aircraftId === "stealth") {
+          // Stealth Mode: 3초간 무적 + 고속이동
+          console.log("Stealth 모드 활성화!");
+          playerStatsRef.current.stealthActive = true;
+          playerStatsRef.current.stealthDuration = 3;
+          playerStatsRef.current.originalSpeed = playerStatsRef.current.moveSpeed;
+          playerStatsRef.current.moveSpeed = playerStatsRef.current.moveSpeed * 2;
+          playerStatsRef.current.skillCooldown = 12;
+        }
+        else if (aircraftId === "interceptor") {
+          // Laser Beam: 관통 레이저
+          console.log("Interceptor 레이저 발사!");
+          st.bullets.push({ 
+            x: p.x + p.w / 2 - 2, 
+            y: 0, 
+            w: 4, 
+            h: p.y, 
+            dy: 0,
+            laser: true,
+            laserDuration: 0.75,
+            followPlayer: true  // 플레이어를 따라다님
+          });
+          playerStatsRef.current.skillCooldown = 7;
+        }
+        else if (aircraftId === "tank") {
+          // Shield Burst: 전방위 보호막 발사
+          console.log("Tank 전방위 총알 발사!");
+          for (let angle = 0; angle < 360; angle += 30) {
+            const rad = angle * Math.PI / 180;
+            st.bullets.push({ 
+              x: p.x + p.w / 2, 
+              y: p.y + p.h / 2, 
+              w: 3, 
+              h: 3, 
+              dx: Math.sin(rad) * 80,
+              dy: -Math.cos(rad) * 80,
+              shield: true
+            });
+          }
+          playerStatsRef.current.skillCooldown = 9;
+        }
+      }
+      
+      // Stealth 모드 지속시간 감소
+      if (playerStatsRef.current.stealthActive) {
+        playerStatsRef.current.stealthDuration -= dt / 1000;
+        if (playerStatsRef.current.stealthDuration <= 0) {
+          playerStatsRef.current.stealthActive = false;
+          playerStatsRef.current.moveSpeed = playerStatsRef.current.originalSpeed;
+        }
+      }
+      
       // 순간이동 처리
       if (playerStatsRef.current.canTeleport && keysRef.current["Shift"] && playerStatsRef.current.teleportCooldown <= 0) {
         // 마우스 위치나 랜덤한 안전한 위치로 순간이동
@@ -729,12 +890,6 @@ function PixelClassicShooter() {
       if ((keysRef.current[" "] || keysRef.current["Space"]) && st.player.cooldown <= 0) {
         // 기본 발사
         st.bullets.push({ x: p.x + p.w / 2 - 1, y: p.y - 4, w: 2, h: 4, dy: -120 });
-        
-        // 더블파이어가 활성화된 경우 추가 2발 발사
-        if (playerStatsRef.current.doubleFire) {
-          st.bullets.push({ x: p.x + p.w / 2 - 4, y: p.y - 4, w: 2, h: 4, dy: -120 }); // 왼쪽 추가 총알
-          st.bullets.push({ x: p.x + p.w / 2 + 2, y: p.y - 4, w: 2, h: 4, dy: -120 }); // 오른쪽 추가 총알
-        }
 
         // 대각선 공격이 활성화된 경우 대각선으로 발사
         if (playerStatsRef.current.diagonalShot) {
@@ -844,11 +999,50 @@ function PixelClassicShooter() {
       // move bullets
       for (let i = st.bullets.length - 1; i >= 0; i--) {
         const b = st.bullets[i];
-        b.y += b.dy * dt / 1000;
-        // 대각선 총알의 경우 x 좌표도 이동
-        if (b.dx) {
-          b.x += b.dx * dt / 1000;
+        
+        // 레이저는 지속시간만 감소하고 플레이어를 따라다님
+        if (b.laser) {
+          b.laserDuration -= dt / 1000;
+          if (b.laserDuration <= 0) {
+            st.bullets.splice(i, 1);
+            continue;
+          }
+          // 플레이어 위치를 따라다님
+          if (b.followPlayer) {
+            b.x = p.x + p.w / 2 - 2;
+            b.h = p.y; // 플레이어까지의 높이
+          }
+          continue;
         }
+        
+        // 폭탄의 경우 적에게 닿으면 폭발 범위 피해
+        if (b.bomb) {
+          b.y += b.dy * dt / 1000;
+          
+          // 적과 충돌 체크
+          for (const e of st.enemies) {
+            if (b.x < e.x + e.w && b.x + b.w > e.x && b.y < e.y + e.h && b.y + b.h > e.y) {
+              // 폭발 범위 내의 모든 적에게 피해
+              for (const target of st.enemies) {
+                const dx = (target.x + target.w/2) - (b.x + b.w/2);
+                const dy = (target.y + target.h/2) - (b.y + b.h/2);
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist < b.bombRadius) {
+                  target.hp -= playerStatsRef.current.attackPower * 2;
+                }
+              }
+              st.bullets.splice(i, 1);
+              break;
+            }
+          }
+        } else {
+          b.y += b.dy * dt / 1000;
+          // 대각선 총알이나 보호막의 경우 x 좌표도 이동
+          if (b.dx) {
+            b.x += b.dx * dt / 1000;
+          }
+        }
+        
         // 화면 밖으로 나가면 제거
         if (b.y + b.h < 0 || b.x < 0 || b.x > PIXEL_W) st.bullets.splice(i, 1);
       }
@@ -1365,12 +1559,42 @@ if (reverseTriggered) {
       // collisions: player bullets -> enemies
       for (let i = st.bullets.length - 1; i >= 0; i--) {
         const b = st.bullets[i];
+        let bulletRemoved = false;
+        
         for (let j = st.enemies.length - 1; j >= 0; j--) {
           const e = st.enemies[j];
-          if (b.x < e.x + e.w && b.x + e.w > e.x && b.y < e.y + e.h && b.y + b.h > e.y) {
-            const dmg = playerStatsRef.current.attackPower || 1;  // 💥 업그레이드된 공격력 적용
-            e.hp -= dmg;
-            st.bullets.splice(i, 1);
+          
+          // 레이저는 특별 충돌 처리 (x축 범위 체크)
+          if (b.laser) {
+            if (b.x < e.x + e.w && b.x + b.w > e.x && e.y < b.y + b.h && e.y + e.h > 0) {
+              const dmg = (playerStatsRef.current.attackPower || 1) * 3; // 레이저는 3배 데미지
+              e.hp -= dmg * (dt / 1000) * 10; // 지속 피해
+            }
+            continue; // 레이저는 제거하지 않음
+          }
+          
+          // 일반 충돌 체크
+          if (b.x < e.x + e.w && b.x + b.w > e.x && b.y < e.y + e.h && b.y + b.h > e.y) {
+            const dmg = playerStatsRef.current.attackPower || 1;
+            
+            // 미사일은 2배 데미지
+            if (b.missile) {
+              e.hp -= dmg * 2;
+            } 
+            // 보호막은 1.5배 데미지
+            else if (b.shield) {
+              e.hp -= dmg * 1.5;
+            }
+            // 일반 총알
+            else {
+              e.hp -= dmg;
+            }
+            
+            // 레이저와 보호막은 관통, 나머지는 제거
+            if (!b.laser && !b.shield) {
+              st.bullets.splice(i, 1);
+              bulletRemoved = true;
+            }
 
             // 최종 보스 2페이즈 전환 체크
             if (e.boss && e.skill === "ultimate" && e.hp <= 10 && !e.phase2) {
@@ -1416,7 +1640,7 @@ if (reverseTriggered) {
               }
             }
 
-            break;
+            if (bulletRemoved) break;
           }
         }
       }
@@ -1440,6 +1664,12 @@ if (reverseTriggered) {
         const eb = st.enemyBullets[i];
         if (eb.x < p.x + p.w && eb.x + eb.w > p.x && eb.y < p.y + p.h && eb.y + eb.h > p.y) {
           st.enemyBullets.splice(i, 1);
+          
+          // 스텔스 모드 중에는 피해 무시
+          if (playerStatsRef.current.stealthActive) {
+            continue;
+          }
+          
           setHitFlashTimed();
           if (playerStatsRef.current.shield > 0) {
             setPlayerStats(ps => { const nv = { ...ps, shield: Math.max(0, ps.shield - 1) }; playerStatsRef.current = nv; return nv; });
@@ -1546,13 +1776,23 @@ if (reverseTriggered) {
       moveSpeed: aircraft.stats.moveSpeed, 
       shootCooldown: aircraft.stats.shootCooldown, 
       shield: aircraft.stats.shield,
-      attackPower: aircraft.stats.attackPower
+      attackPower: aircraft.stats.attackPower,
+      aircraftId: aircraft.id,
+      skillCooldown: 0,
+      stealthActive: false,
+      stealthDuration: 0,
+      originalSpeed: aircraft.stats.moveSpeed
     }); 
     playerStatsRef.current = { 
       moveSpeed: aircraft.stats.moveSpeed, 
       shootCooldown: aircraft.stats.shootCooldown, 
       shield: aircraft.stats.shield,
-      attackPower: aircraft.stats.attackPower
+      attackPower: aircraft.stats.attackPower,
+      aircraftId: aircraft.id,
+      skillCooldown: 0,
+      stealthActive: false,
+      stealthDuration: 0,
+      originalSpeed: aircraft.stats.moveSpeed
     };
     setBarrierExtraCount(0); barrierExtraCountRef.current = 0;
     setBarrierHPBonus(0); barrierHPBonusRef.current = 0;
@@ -1582,10 +1822,12 @@ if (reverseTriggered) {
           borderRadius: 10,
           border: "2px solid #555",
           zIndex: 100,
-          maxWidth: "80%"
+          maxWidth: "90%",
+          maxHeight: "90vh",
+          overflowY: "auto"
         }}>
-          <h2 style={{ margin: "0 0 20px 0", color: "#fff" }}>✈️ 비행기 선택</h2>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 15 }}>
+          <h2 style={{ margin: "0 0 20px 0", color: "#fff", textAlign: "center" }}>✈️ 비행기 선택</h2>
+          <div style={{ display: "flex", flexDirection: "row", gap: 15, justifyContent: "center", flexWrap: "wrap" }}>
             {aircraftTypes.map((aircraft) => (
               <div
                 key={aircraft.id}
@@ -1597,6 +1839,8 @@ if (reverseTriggered) {
                   borderRadius: "8px",
                   cursor: "pointer",
                   transition: "all 0.3s",
+                  minWidth: "180px",
+                  maxWidth: "200px"
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.border = `2px solid ${aircraft.color}`;
@@ -1619,6 +1863,10 @@ if (reverseTriggered) {
                   <div>🔥 Fire Rate: {(1/aircraft.stats.shootCooldown).toFixed(1)}/s</div>
                   <div>🛡️ Shield: {aircraft.stats.shield}</div>
                   <div>💥 Attack: {aircraft.stats.attackPower}</div>
+                  <div style={{ marginTop: "8px", paddingTop: "8px", borderTop: "1px solid #555" }}>
+                    <div style={{ color: "#ffff00", fontWeight: "bold" }}>⚡ {aircraft.skillName}</div>
+                    <div style={{ fontSize: "10px", color: "#999" }}>{aircraft.skillDesc}</div>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1707,7 +1955,6 @@ if (reverseTriggered) {
                 {u === "shield" && "🛡️ Add 3 Shield"}
                 {u === "superShield" && "🛡️✨ add 5 shield"}
                 {u === "megaAttack" && "💢💥 +3 damage"}
-                {u === "doubleFire" && "💥💥 shoting 2 bullets"}
                 {u === "diagonalShot" && "↖️↗️ Diagonal Shot"}
                 {u === "playerTripleShot" && "🎯 Triple Shot"}
                 {u === "playerRapidFire" && "⚡ Super Fast Fire"}
