@@ -1942,7 +1942,7 @@ if (reverseTriggered) {
               <button key={idx} onClick={() => chooseUpgrade(u)} style={{
                 padding: "6px 10px",
                 fontWeight: (rareUpgrades.includes(u) ? "bold" : "normal"),
-                color: (rareUpgrades.includes(u) ? "#0ff" : "#fff")
+                color: (rareUpgrades.includes(u) ? "#0ff" : "#000")
               }}>
                {u === "attackPower" && "💥 +1 damage"}
                 {u === "speed" && "🚀 Move Speed +10"}
