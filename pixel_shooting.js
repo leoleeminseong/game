@@ -11,7 +11,11 @@ const bossSkillToUpgrade = {
   "rapidFire": "playerRapidFire",     // 빠른 연사
   "teleport": "playerTeleport",       // 순간이동
   "regen": "playerRegen",             // 체력 회복
-  "final": "playerFinalForm"          // 강화 모드
+  "lightning": "playerLightning",     // 번개 공격
+  "timeWarp": "playerTimeWarp",       // 시간 왜곡
+  "starfall": "playerStarfall",       // 별똥별 공격
+  "chaos": "playerChaos"              // 카오스 공격
+  // "final"과 "ultimate"는 제외 (50레벨, 100레벨 보스)
 };
 
 
@@ -294,8 +298,28 @@ function PixelClassicShooter() {
         }
       }, 3000);
     }
+    if (type === "playerLightning") {
+      // 번개 공격 능력
+      playerStatsRef.current.hasLightning = true;
+      playerStatsRef.current.lightningCooldown = 0;
+    }
+    if (type === "playerTimeWarp") {
+      // 시간 왜곡 능력 - 주기적으로 원형 탄막 발사
+      playerStatsRef.current.hasTimeWarp = true;
+      playerStatsRef.current.timeWarpCooldown = 0;
+    }
+    if (type === "playerStarfall") {
+      // 별똥별 공격 능력
+      playerStatsRef.current.hasStarfall = true;
+      playerStatsRef.current.starfallCooldown = 0;
+    }
+    if (type === "playerChaos") {
+      // 카오스 공격 - 무작위 강력한 공격
+      playerStatsRef.current.hasChaos = true;
+      playerStatsRef.current.chaosCooldown = 0;
+    }
     if (type === "playerFinalForm") {
-      // 최종 형태: 모든 능력 강화
+      // 최종 형태: 모든 능력 강화 (50레벨 보스 - 제외하지만 유지)
       setPlayerStats(p => {
         const nv = {
           ...p,
@@ -389,7 +413,7 @@ function PixelClassicShooter() {
 
       // bullets
       for (const b of st.bullets) {
-        ctx.fillStyle = "#ffff66";
+        ctx.fillStyle = b.color || "#ffff66";
         ctx.fillRect(b.x, b.y, b.w, b.h);
       }
       for (const b of st.enemyBullets) {
@@ -568,7 +592,7 @@ function PixelClassicShooter() {
         ctx.fillRect(0, PIXEL_H / 2 - 20, PIXEL_W, 40);
         ctx.fillStyle = "#fff";
         ctx.font = "10px monospace";
-        ctx.fillText(levelRef.current >= 50 ? "YOU WIN! GAME CLEAR 🎉" : "GAME OVER", PIXEL_W / 2 - 40, PIXEL_H / 2);
+        ctx.fillText(levelRef.current > 100 ? "YOU WIN! GAME CLEAR 🎉" : "GAME OVER", PIXEL_W / 2 - 40, PIXEL_H / 2);
         ctx.font = "7px monospace";
         ctx.fillText("Press Enter to restart", PIXEL_W / 2 - 45, PIXEL_H / 2 + 10);
       }
@@ -578,6 +602,15 @@ function PixelClassicShooter() {
       if (gameOverRef.current || showUpgradeRef.current) return;
       const st = gameRef.current;
       const p = st.player;
+
+      // lives가 0 이하인지 체크
+      if (livesRef.current <= 0) {
+        setGameOver(true); 
+        gameOverRef.current = true;
+        setRunning(false); 
+        runningRef.current = false;
+        return;
+      }
 
       // movement
       if (keysRef.current["ArrowLeft"]) p.x -= playerStatsRef.current.moveSpeed * dt / 700;
@@ -589,6 +622,7 @@ function PixelClassicShooter() {
 
       // shooting
       st.player.cooldown -= dt / 1000;
+      
       // 순간이동 처리
       if (playerStatsRef.current.canTeleport && keysRef.current["Shift"] && playerStatsRef.current.teleportCooldown <= 0) {
         // 마우스 위치나 랜덤한 안전한 위치로 순간이동
@@ -642,6 +676,72 @@ function PixelClassicShooter() {
                 dy: -120
               });
             }
+          }
+        }
+
+        // 보스 스킬 자동 발동 (15% 확률)
+        const skillChance = Math.random();
+        
+        // 번개 공격 (15% 확률)
+        if (playerStatsRef.current.hasLightning && skillChance < 0.15) {
+          for (let i = 0; i < 2; i++) {
+            const x = p.x + (Math.random() - 0.5) * 50;
+            st.bullets.push({
+              x: Math.max(0, Math.min(PIXEL_W, x)),
+              y: p.y - 10,
+              w: 3,
+              h: 8,
+              dy: -300,
+              color: "#ffff00",
+              isLightning: true
+            });
+          }
+        }
+
+        // 시간 왜곡 (12% 확률)
+        if (playerStatsRef.current.hasTimeWarp && skillChance < 0.12) {
+          for (let i = 0; i < 6; i++) {
+            const angle = (i * 60) * Math.PI / 180;
+            st.bullets.push({
+              x: p.x + p.w / 2,
+              y: p.y,
+              w: 3,
+              h: 3,
+              dy: Math.sin(angle) * -150,
+              dx: Math.cos(angle) * 150,
+              color: "#ff00ff"
+            });
+          }
+        }
+
+        // 별똥별 공격 (10% 확률)
+        if (playerStatsRef.current.hasStarfall && skillChance < 0.10) {
+          for (let i = 0; i < 2; i++) {
+            st.bullets.push({
+              x: p.x + (i - 0.5) * 15,
+              y: p.y - 10,
+              w: 4,
+              h: 4,
+              dy: -250,
+              color: "#ffffff",
+              isStar: true
+            });
+          }
+        }
+
+        // 카오스 공격 (8% 확률)
+        if (playerStatsRef.current.hasChaos && skillChance < 0.08) {
+          for (let i = 0; i < 8; i++) {
+            const angle = (i * 45 + Math.random() * 20) * Math.PI / 180;
+            st.bullets.push({
+              x: p.x + p.w / 2,
+              y: p.y,
+              w: 4,
+              h: 4,
+              dy: Math.sin(angle) * -180,
+              dx: Math.cos(angle) * 180,
+              color: "#ff0000"
+            });
           }
         }
 
@@ -1274,6 +1374,10 @@ if (reverseTriggered) {
                 {u === "playerRapidFire" && "⚡ Super Fast Fire"}
                 {u === "playerTeleport" && "💫 Teleport (Shift)"}
                 {u === "playerRegen" && "💖 Auto Heal"}
+                {u === "playerLightning" && "⚡🌩️ Lightning (Auto)"}
+                {u === "playerTimeWarp" && "🌀⏰ Time Warp (Auto)"}
+                {u === "playerStarfall" && "⭐💫 Starfall (Auto)"}
+                {u === "playerChaos" && "🌪️💥 Chaos (Auto)"}
                 {u === "playerFinalForm" && "✨ Ultimate Power"}
               </button>
             ))}
@@ -1283,12 +1387,12 @@ if (reverseTriggered) {
 
       {gameOver && (
         <div style={{ marginTop: 10, color: "#f66", fontWeight: "bold" }}>
-          {level >= 50 ? "YOU WIN! GAME CLEAR 🎉" : "GAME OVER"} — Press Enter to restart
+          {level > 100 ? "YOU WIN! GAME CLEAR 🎉" : "GAME OVER"} — Press Enter to restart
         </div>
       )}
 
       <div style={{ marginTop: 6, fontSize: 12, color: "#aaa" }}>
-        Controls: Arrow keys to move — Space to shoot — Enter to restart (when game over)
+        Controls: Arrow keys to move — Space to shoot — Shift: Teleport — Boss skills auto-trigger
       </div>
     </div>
   );
