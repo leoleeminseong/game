@@ -309,57 +309,112 @@ function PixelClassicShooter() {
   
     }
     if (type === "diagonalShot") {
-      // 대각선 공격 모드 활성화
-      playerStatsRef.current.diagonalShot = true;
+      // 대각선 공격 모드 활성화 (중첩 가능)
+      if (!playerStatsRef.current.diagonalShot) {
+        playerStatsRef.current.diagonalShot = true;
+      } else {
+        // 이미 활성화되어 있으면 공격력 증가
+        setPlayerStats((p) => {
+          const nv = { ...p, attackPower: (p.attackPower || 1) + 1 };
+          playerStatsRef.current = nv;
+          return nv;
+        });
+      }
     }
     
     // 보스 스킬 업그레이드
     if (type === "playerTripleShot") {
-      playerStatsRef.current.tripleShot = true;
+      // 트리플샷 중첩 시 5연사로 업그레이드
+      if (!playerStatsRef.current.tripleShot) {
+        playerStatsRef.current.tripleShot = true;
+      } else if (!playerStatsRef.current.pentaShot) {
+        playerStatsRef.current.pentaShot = true;
+      } else {
+        // 이미 5연사면 공격력 증가
+        setPlayerStats((p) => {
+          const nv = { ...p, attackPower: (p.attackPower || 1) + 1 };
+          playerStatsRef.current = nv;
+          return nv;
+        });
+      }
     }
     if (type === "playerRapidFire") {
       setPlayerStats(p => {
-        const nv = { ...p, shootCooldown: Math.max(0.05, p.shootCooldown * 0.5) };
+        const nv = { ...p, shootCooldown: Math.max(0.03, p.shootCooldown * 0.7) };
         playerStatsRef.current = nv;
         return nv;
       });
     }
     if (type === "playerTeleport") {
-      playerStatsRef.current.canTeleport = true;
-      playerStatsRef.current.teleportCooldown = 0;
+      if (!playerStatsRef.current.canTeleport) {
+        playerStatsRef.current.canTeleport = true;
+        playerStatsRef.current.teleportCooldown = 0;
+      } else {
+        // 텔레포트 쿨다운 감소
+        setPlayerStats((p) => {
+          const nv = { ...p, moveSpeed: p.moveSpeed + 20 };
+          playerStatsRef.current = nv;
+          return nv;
+        });
+      }
     }
     if (type === "playerRegen") {
-      playerStatsRef.current.regenEnabled = true;
-      // 3초마다 체력 1 회복
-      setInterval(() => {
-        if (playerStatsRef.current.regenEnabled && livesRef.current < 10) {
-          setLives(l => {
-            const nv = Math.min(10, l + 1);
-            livesRef.current = nv;
-            return nv;
-          });
-        }
-      }, 3000);
+      if (!playerStatsRef.current.regenEnabled) {
+        playerStatsRef.current.regenEnabled = true;
+        playerStatsRef.current.regenLevel = 1;
+        // 3초마다 체력 회복
+        setInterval(() => {
+          if (playerStatsRef.current.regenEnabled) {
+            const maxLives = 10 + (playerStatsRef.current.regenLevel || 1) * 5;
+            if (livesRef.current < maxLives) {
+              setLives(l => {
+                const nv = Math.min(maxLives, l + (playerStatsRef.current.regenLevel || 1));
+                livesRef.current = nv;
+                return nv;
+              });
+            }
+          }
+        }, 3000);
+      } else {
+        // 리젠 레벨 증가
+        playerStatsRef.current.regenLevel = (playerStatsRef.current.regenLevel || 1) + 1;
+      }
     }
     if (type === "playerLightning") {
-      // 번개 공격 능력
-      playerStatsRef.current.hasLightning = true;
-      playerStatsRef.current.lightningCooldown = 0;
+      // 번개 공격 능력 (중첩 시 확률 증가)
+      if (!playerStatsRef.current.hasLightning) {
+        playerStatsRef.current.hasLightning = true;
+        playerStatsRef.current.lightningLevel = 1;
+      } else {
+        playerStatsRef.current.lightningLevel = (playerStatsRef.current.lightningLevel || 1) + 1;
+      }
     }
     if (type === "playerTimeWarp") {
-      // 시간 왜곡 능력 - 주기적으로 원형 탄막 발사
-      playerStatsRef.current.hasTimeWarp = true;
-      playerStatsRef.current.timeWarpCooldown = 0;
+      // 시간 왜곡 능력 (중첩 시 확률 증가)
+      if (!playerStatsRef.current.hasTimeWarp) {
+        playerStatsRef.current.hasTimeWarp = true;
+        playerStatsRef.current.timeWarpLevel = 1;
+      } else {
+        playerStatsRef.current.timeWarpLevel = (playerStatsRef.current.timeWarpLevel || 1) + 1;
+      }
     }
     if (type === "playerStarfall") {
-      // 별똥별 공격 능력
-      playerStatsRef.current.hasStarfall = true;
-      playerStatsRef.current.starfallCooldown = 0;
+      // 별똥별 공격 능력 (중첩 시 확률 증가)
+      if (!playerStatsRef.current.hasStarfall) {
+        playerStatsRef.current.hasStarfall = true;
+        playerStatsRef.current.starfallLevel = 1;
+      } else {
+        playerStatsRef.current.starfallLevel = (playerStatsRef.current.starfallLevel || 1) + 1;
+      }
     }
     if (type === "playerChaos") {
-      // 카오스 공격 - 무작위 강력한 공격
-      playerStatsRef.current.hasChaos = true;
-      playerStatsRef.current.chaosCooldown = 0;
+      // 카오스 공격 (중첩 시 확률 증가)
+      if (!playerStatsRef.current.hasChaos) {
+        playerStatsRef.current.hasChaos = true;
+        playerStatsRef.current.chaosLevel = 1;
+      } else {
+        playerStatsRef.current.chaosLevel = (playerStatsRef.current.chaosLevel || 1) + 1;
+      }
     }
     if (type === "playerFinalForm") {
       // 최종 형태: 모든 능력 강화 (50레벨 보스 - 제외하지만 유지)
@@ -881,13 +936,30 @@ function PixelClassicShooter() {
             }
           }
         }
+        
+        // pentaShot (5연사)
+        if (playerStatsRef.current.pentaShot) {
+          for (let i = -2; i <= 2; i++) {
+            if (i !== 0) { // 중앙은 이미 발사됨
+              st.bullets.push({ 
+                x: p.x + p.w / 2 - 1 + (i * 3), 
+                y: p.y - 4, 
+                w: 2, 
+                h: 4, 
+                dy: -120
+              });
+            }
+          }
+        }
 
-        // 보스 스킬 자동 발동 (15% 확률)
+        // 보스 스킬 자동 발동 (레벨에 따라 확률 증가)
         const skillChance = Math.random();
         
-        // 번개 공격 (15% 확률)
-        if (playerStatsRef.current.hasLightning && skillChance < 0.15) {
-          for (let i = 0; i < 2; i++) {
+        // 번개 공격 (레벨당 15% 확률)
+        const lightningLevel = playerStatsRef.current.lightningLevel || 0;
+        if (playerStatsRef.current.hasLightning && skillChance < 0.15 * lightningLevel) {
+          const count = 2 + Math.floor(lightningLevel / 2);
+          for (let i = 0; i < count; i++) {
             const x = p.x + (Math.random() - 0.5) * 50;
             st.bullets.push({
               x: Math.max(0, Math.min(PIXEL_W, x)),
@@ -901,10 +973,12 @@ function PixelClassicShooter() {
           }
         }
 
-        // 시간 왜곡 (12% 확률)
-        if (playerStatsRef.current.hasTimeWarp && skillChance < 0.12) {
-          for (let i = 0; i < 6; i++) {
-            const angle = (i * 60) * Math.PI / 180;
+        // 시간 왜곡 (레벨당 12% 확률)
+        const timeWarpLevel = playerStatsRef.current.timeWarpLevel || 0;
+        if (playerStatsRef.current.hasTimeWarp && skillChance < 0.12 * timeWarpLevel) {
+          const bulletCount = 6 + timeWarpLevel * 2;
+          for (let i = 0; i < bulletCount; i++) {
+            const angle = (i * 360 / bulletCount) * Math.PI / 180;
             st.bullets.push({
               x: p.x + p.w / 2,
               y: p.y,
@@ -917,11 +991,13 @@ function PixelClassicShooter() {
           }
         }
 
-        // 별똥별 공격 (10% 확률)
-        if (playerStatsRef.current.hasStarfall && skillChance < 0.10) {
-          for (let i = 0; i < 2; i++) {
+        // 별똥별 공격 (레벨당 10% 확률)
+        const starfallLevel = playerStatsRef.current.starfallLevel || 0;
+        if (playerStatsRef.current.hasStarfall && skillChance < 0.10 * starfallLevel) {
+          const count = 2 + starfallLevel;
+          for (let i = 0; i < count; i++) {
             st.bullets.push({
-              x: p.x + (i - 0.5) * 15,
+              x: p.x + (i - count/2) * 15,
               y: p.y - 10,
               w: 4,
               h: 4,
@@ -932,10 +1008,12 @@ function PixelClassicShooter() {
           }
         }
 
-        // 카오스 공격 (8% 확률)
-        if (playerStatsRef.current.hasChaos && skillChance < 0.08) {
-          for (let i = 0; i < 8; i++) {
-            const angle = (i * 45 + Math.random() * 20) * Math.PI / 180;
+        // 카오스 공격 (레벨당 8% 확률)
+        const chaosLevel = playerStatsRef.current.chaosLevel || 0;
+        if (playerStatsRef.current.hasChaos && skillChance < 0.08 * chaosLevel) {
+          const bulletCount = 8 + chaosLevel * 2;
+          for (let i = 0; i < bulletCount; i++) {
+            const angle = (i * 360 / bulletCount + Math.random() * 20) * Math.PI / 180;
             st.bullets.push({
               x: p.x + p.w / 2,
               y: p.y,
