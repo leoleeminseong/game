@@ -427,17 +427,26 @@ function PixelClassicShooter() {
           // 보스 몸체
           if (e.skill === "ultimate") {
             // 최종 보스 특별 렌더링
+            const isPhase2 = e.phase2 === true;
             const gradient = ctx.createLinearGradient(e.x, e.y, e.x + e.w, e.y + e.h);
-            gradient.addColorStop(0, "#ff0000");
-            gradient.addColorStop(0.5, "#ff00ff");
-            gradient.addColorStop(1, "#0000ff");
+            
+            if (isPhase2) {
+              // 2페이즈 색상 (더 어둡고 강렬함)
+              gradient.addColorStop(0, "#8800ff");
+              gradient.addColorStop(0.5, "#ff0088");
+              gradient.addColorStop(1, "#000000");
+            } else {
+              gradient.addColorStop(0, "#ff0000");
+              gradient.addColorStop(0.5, "#ff00ff");
+              gradient.addColorStop(1, "#0000ff");
+            }
             ctx.fillStyle = gradient;
             
             // 보스 주위에 에너지 오라 효과
             ctx.save();
-            ctx.globalAlpha = 0.3;
-            for (let i = 0; i < 3; i++) {
-              const pulseScale = 1 + Math.sin(performance.now() / 200) * 0.1;
+            ctx.globalAlpha = isPhase2 ? 0.5 : 0.3;
+            for (let i = 0; i < (isPhase2 ? 5 : 3); i++) {
+              const pulseScale = 1 + Math.sin(performance.now() / (isPhase2 ? 150 : 200)) * 0.1;
               ctx.fillRect(
                 e.x - i * 2 * pulseScale, 
                 e.y - i * 2 * pulseScale, 
@@ -449,19 +458,20 @@ function PixelClassicShooter() {
             
             // 보스 주위에 전기 효과
             ctx.save();
-            ctx.strokeStyle = "#00ffff";
-            ctx.lineWidth = 1;
+            ctx.strokeStyle = isPhase2 ? "#ff00ff" : "#00ffff";
+            ctx.lineWidth = isPhase2 ? 2 : 1;
             const time = performance.now() / 1000;
-            for (let i = 0; i < 8; i++) {
-              const angle = (time + i * Math.PI / 4) % (Math.PI * 2);
+            const lightningCount = isPhase2 ? 12 : 8;
+            for (let i = 0; i < lightningCount; i++) {
+              const angle = (time + i * Math.PI / (lightningCount / 2)) % (Math.PI * 2);
               ctx.beginPath();
               ctx.moveTo(
                 e.x + e.w/2 + Math.cos(angle) * (e.w/2 + 5),
                 e.y + e.h/2 + Math.sin(angle) * (e.h/2 + 5)
               );
               ctx.lineTo(
-                e.x + e.w/2 + Math.cos(angle) * (e.w/2 + 15),
-                e.y + e.h/2 + Math.sin(angle) * (e.h/2 + 15)
+                e.x + e.w/2 + Math.cos(angle) * (e.w/2 + (isPhase2 ? 20 : 15)),
+                e.y + e.h/2 + Math.sin(angle) * (e.h/2 + (isPhase2 ? 20 : 15))
               );
               ctx.stroke();
             }
@@ -496,9 +506,11 @@ function PixelClassicShooter() {
 
           // 보스 이름 (보스 아래에 표시)
           ctx.shadowBlur = 0; // 그림자 효과 초기화
-          ctx.fillStyle = e.skill === "ultimate" ? "#ffff99" : "#ff99ff";
+          const isPhase2Display = e.boss && e.skill === "ultimate" && e.phase2;
+          const bossNameText = e.skill === "ultimate" && isPhase2Display ? e.name + " [PHASE 2]" : e.name;
+          ctx.fillStyle = e.skill === "ultimate" ? (isPhase2Display ? "#ff00ff" : "#ffff99") : "#ff99ff";
           ctx.font = e.skill === "ultimate" ? "bold 10px monospace" : "bold 8px monospace";
-          const nameWidth = ctx.measureText(e.name).width;
+          const nameWidth = ctx.measureText(bossNameText).width;
           
           // 이름 배경
           ctx.fillStyle = "rgba(0,0,0,0.7)";
@@ -510,9 +522,9 @@ function PixelClassicShooter() {
           );
           
           // 이름 텍스트
-          ctx.fillStyle = e.skill === "ultimate" ? "#ffff99" : "#ff99ff";
+          ctx.fillStyle = e.skill === "ultimate" ? (isPhase2Display ? "#ff00ff" : "#ffff99") : "#ff99ff";
           ctx.fillText(
-            e.name,
+            bossNameText,
             e.x + e.w/2 - nameWidth/2,
             e.y + e.h + (e.skill === "ultimate" ? 11 : 9)
           );
@@ -1048,87 +1060,222 @@ if (reverseTriggered) {
           } else if (e.skill === "ultimate") {
             // ETERNAL NEMESIS (100레벨 최종 보스): 모든 패턴 집대성
             if (!e.phaseCounter) e.phaseCounter = 0;
-            e.phaseCounter = (e.phaseCounter + 1) % 4;
+            e.phaseCounter = (e.phaseCounter + 1) % 5; // 5개 패턴으로 확장
+
+            // 2페이즈 체크 - 더 강력한 패턴
+            const isPhase2 = e.phase2 === true;
+            const bulletMultiplier = isPhase2 ? 1.5 : 1;
+            const speedMultiplier = isPhase2 ? 1.3 : 1;
 
             // 페이즈 1: 전방위 레이저 + 방어막
             if (e.phaseCounter === 0) {
-              for (let i = 0; i < 24; i++) {
-                const angle = (i * 15) * Math.PI / 180;
+              const bulletCount = isPhase2 ? 36 : 24;
+              const angleStep = 360 / bulletCount;
+              for (let i = 0; i < bulletCount; i++) {
+                const angle = (i * angleStep) * Math.PI / 180;
                 st.enemyBullets.push({
                   x: e.x + e.w / 2,
                   y: e.y + e.h / 2,
-                  w: 4,
-                  h: 4,
-                  dy: Math.sin(angle) * 200,
-                  dx: Math.cos(angle) * 200,
-                  color: "#ff0000",
+                  w: isPhase2 ? 5 : 4,
+                  h: isPhase2 ? 5 : 4,
+                  dy: Math.sin(angle) * 200 * speedMultiplier,
+                  dx: Math.cos(angle) * 200 * speedMultiplier,
+                  color: isPhase2 ? "#ff00ff" : "#ff0000",
                   ultimate: true
                 });
+              }
+              // 2페이즈 추가 공격: 회전하는 레이저
+              if (isPhase2) {
+                for (let i = 0; i < 8; i++) {
+                  const angle = (i * 45 + 22.5) * Math.PI / 180;
+                  st.enemyBullets.push({
+                    x: e.x + e.w / 2,
+                    y: e.y + e.h / 2,
+                    w: 6,
+                    h: 6,
+                    dy: Math.sin(angle) * 150,
+                    dx: Math.cos(angle) * 150,
+                    color: "#00ffff",
+                    ultimate: true
+                  });
+                }
               }
             }
             // 페이즈 2: 타임워프 + 스타폴
             else if (e.phaseCounter === 1) {
-              for (let i = 0; i < 5; i++) {
-                const x = e.x + (i - 2) * (e.w / 2);
+              const starCount = isPhase2 ? 8 : 5;
+              for (let i = 0; i < starCount; i++) {
+                const x = e.x + (i - starCount/2) * (e.w / 2);
                 st.enemyBullets.push({
                   x: x,
                   y: e.y,
-                  w: 6,
-                  h: 6,
-                  dy: 150,
+                  w: isPhase2 ? 8 : 6,
+                  h: isPhase2 ? 8 : 6,
+                  dy: 150 * speedMultiplier,
                   dx: 0,
                   color: "#ffffff",
                   ultimate: true,
-                  splits: 4
+                  splits: isPhase2 ? 6 : 4
                 });
+              }
+              // 2페이즈 추가: 나선형 탄막
+              if (isPhase2) {
+                for (let i = 0; i < 12; i++) {
+                  const angle = (i * 30) * Math.PI / 180;
+                  st.enemyBullets.push({
+                    x: e.x + e.w / 2,
+                    y: e.y + e.h / 2,
+                    w: 4,
+                    h: 4,
+                    dy: Math.sin(angle) * 180,
+                    dx: Math.cos(angle) * 180,
+                    color: "#ffff00",
+                    ultimate: true
+                  });
+                }
               }
             }
             // 페이즈 3: 번개 폭풍
             else if (e.phaseCounter === 2) {
-              for (let i = 0; i < 8; i++) {
-                const x = (PIXEL_W / 7) * i;
-                for (let j = 0; j < 3; j++) {
+              const lightningCount = isPhase2 ? 12 : 8;
+              for (let i = 0; i < lightningCount; i++) {
+                const x = (PIXEL_W / (lightningCount - 1)) * i;
+                const waveCount = isPhase2 ? 5 : 3;
+                for (let j = 0; j < waveCount; j++) {
                   setTimeout(() => {
                     if (e.hp > 0) {
                       st.enemyBullets.push({
                         x: x + (Math.random() - 0.5) * 30,
                         y: e.y + j * 30,
-                        w: 4,
-                        h: 10,
-                        dy: 250,
+                        w: isPhase2 ? 5 : 4,
+                        h: isPhase2 ? 12 : 10,
+                        dy: 250 * speedMultiplier,
                         color: "#ffff00",
                         ultimate: true
                       });
                     }
-                  }, j * 100);
+                  }, j * (isPhase2 ? 80 : 100));
+                }
+              }
+              // 2페이즈 추가: 가로 레이저
+              if (isPhase2) {
+                for (let i = 0; i < 3; i++) {
+                  setTimeout(() => {
+                    if (e.hp > 0) {
+                      for (let k = 0; k < 5; k++) {
+                        st.enemyBullets.push({
+                          x: k * (PIXEL_W / 4),
+                          y: e.y + e.h,
+                          w: 6,
+                          h: 4,
+                          dy: 200,
+                          dx: (k - 2) * 50,
+                          color: "#ff0000",
+                          ultimate: true
+                        });
+                      }
+                    }
+                  }, i * 300);
                 }
               }
             }
-            // 페이즈 4: 카오스 에너지
+            // 페이즈 4: Void Overlord 복합 패턴 (50레벨 보스 스킬)
+            else if (e.phaseCounter === 3) {
+              // 5방향 확산 탄막
+              const spreadCount = isPhase2 ? 7 : 5;
+              for (let i = -(spreadCount-1)/2; i <= (spreadCount-1)/2; i++) {
+                st.enemyBullets.push({
+                  x: e.x + e.w / 2 - 1 + i * 5,
+                  y: e.y + e.h,
+                  w: isPhase2 ? 3 : 2,
+                  h: isPhase2 ? 5 : 4,
+                  dy: 180 * speedMultiplier,
+                  dx: i * 20 * speedMultiplier,
+                  color: isPhase2 ? "#00ff00" : "#ffffff",
+                  ultimate: true
+                });
+              }
+              // 텔레포트
+              e.x = Math.random() * (PIXEL_W - e.w);
+              
+              // 체력 회복 (50레벨 보스 특성)
+              e.hp = Math.min(e.baseHp, e.hp + (isPhase2 ? 8 : 5));
+              
+              // 2페이즈 추가: 텔레포트 후 십자 탄막
+              if (isPhase2) {
+                // 상하좌우 십자 탄막
+                for (let i = -3; i <= 3; i++) {
+                  if (i !== 0) {
+                    // 수평
+                    st.enemyBullets.push({
+                      x: e.x + e.w / 2,
+                      y: e.y + e.h / 2,
+                      w: 4,
+                      h: 4,
+                      dy: 0,
+                      dx: i * 60,
+                      color: "#ff8800",
+                      ultimate: true
+                    });
+                    // 수직
+                    st.enemyBullets.push({
+                      x: e.x + e.w / 2,
+                      y: e.y + e.h / 2,
+                      w: 4,
+                      h: 4,
+                      dy: i * 60,
+                      dx: 0,
+                      color: "#ff8800",
+                      ultimate: true
+                    });
+                  }
+                }
+              }
+            }
+            // 페이즈 5: 카오스 에너지
             else {
               e.x = Math.random() * (PIXEL_W - e.w); // 텔레포트
-              for (let i = 0; i < 16; i++) {
-                const angle = (i * 22.5) * Math.PI / 180;
-                const speed = 180;
+              const chaosCount = isPhase2 ? 24 : 16;
+              for (let i = 0; i < chaosCount; i++) {
+                const angle = (i * (360 / chaosCount)) * Math.PI / 180;
+                const speed = 180 * speedMultiplier;
                 st.enemyBullets.push({
                   x: e.x + e.w / 2,
                   y: e.y + e.h / 2,
-                  w: 4,
-                  h: 4,
+                  w: isPhase2 ? 5 : 4,
+                  h: isPhase2 ? 5 : 4,
                   dy: Math.sin(angle) * speed,
                   dx: Math.cos(angle) * speed,
                   color: "#ff00ff",
                   ultimate: true
                 });
               }
+              // 2페이즈 추가: 추적 탄막
+              if (isPhase2) {
+                const p = st.player;
+                for (let i = 0; i < 8; i++) {
+                  const angleToPlayer = Math.atan2(p.y - e.y, p.x - e.x);
+                  const spreadAngle = angleToPlayer + (i - 4) * 0.2;
+                  st.enemyBullets.push({
+                    x: e.x + e.w / 2,
+                    y: e.y + e.h / 2,
+                    w: 5,
+                    h: 5,
+                    dy: Math.sin(spreadAngle) * 220,
+                    dx: Math.cos(spreadAngle) * 220,
+                    color: "#00ff00",
+                    ultimate: true
+                  });
+                }
+              }
             }
 
-            // 체력 회복 (낮은 확률)
-            if (Math.random() < 0.1) {
-              e.hp = Math.min(e.baseHp, e.hp + 10);
+            // 체력 회복 (2페이즈에서는 확률 감소)
+            if (Math.random() < (isPhase2 ? 0.05 : 0.1)) {
+              e.hp = Math.min(e.baseHp, e.hp + (isPhase2 ? 5 : 10));
             }
 
-            e.skillCooldown = 1.5; // 더 빠른 스킬 사용
+            e.skillCooldown = isPhase2 ? 1.0 : 1.5; // 2페이즈에서 더 빠른 스킬 사용
           } else {
             e.skillCooldown = 1;
           }
@@ -1140,10 +1287,32 @@ if (reverseTriggered) {
         const b = st.bullets[i];
         for (let j = st.enemies.length - 1; j >= 0; j--) {
           const e = st.enemies[j];
-          if (b.x < e.x + e.w && b.x + b.w > e.x && b.y < e.y + e.h && b.y + b.h > e.y) {
+          if (b.x < e.x + e.w && b.x + e.w > e.x && b.y < e.y + e.h && b.y + b.h > e.y) {
             const dmg = playerStatsRef.current.attackPower || 1;  // 💥 업그레이드된 공격력 적용
             e.hp -= dmg;
             st.bullets.splice(i, 1);
+
+            // 최종 보스 2페이즈 전환 체크
+            if (e.boss && e.skill === "ultimate" && e.hp <= 10 && !e.phase2) {
+              e.phase2 = true;
+              e.hp = e.baseHp; // 체력 완전 회복
+              e.maxPhase2Hp = e.baseHp; // 2페이즈 최대 체력 저장
+              // 2페이즈 시작 효과 (전방위 폭발)
+              for (let k = 0; k < 32; k++) {
+                const angle = (k * 11.25) * Math.PI / 180;
+                st.enemyBullets.push({
+                  x: e.x + e.w / 2,
+                  y: e.y + e.h / 2,
+                  w: 5,
+                  h: 5,
+                  dy: Math.sin(angle) * 250,
+                  dx: Math.cos(angle) * 250,
+                  color: "#ff0000",
+                  phase2: true
+                });
+              }
+              break;
+            }
 
             if (e.hp <= 0) {
               const wasBoss = e.boss;
