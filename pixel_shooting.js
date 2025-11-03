@@ -113,8 +113,6 @@ function PixelClassicShooter() {
   const [hitFlash, setHitFlash] = useState(false);
 
   // persistent upgrade trackers
-  const [barrierExtraCount, setBarrierExtraCount] = useState(0);
-  const [barrierHPBonus, setBarrierHPBonus] = useState(0);
   const [playerStats, setPlayerStats] = useState({ moveSpeed: 50, shootCooldown: 0.3, shield: 0 });
 
   // ----- refs to keep main loop stable (avoid reruns) -----
@@ -125,8 +123,6 @@ function PixelClassicShooter() {
   const showUpgradeRef = useRef(showUpgrade);
   const availableUpgradesRef = useRef(availableUpgrades);
   const playerStatsRef = useRef(playerStats);
-  const barrierExtraCountRef = useRef(barrierExtraCount);
-  const barrierHPBonusRef = useRef(barrierHPBonus);
   const hitFlashRef = useRef(false);
   const selectedAircraftRef = useRef(selectedAircraft);
 
@@ -137,8 +133,6 @@ function PixelClassicShooter() {
   useEffect(() => { showUpgradeRef.current = showUpgrade; }, [showUpgrade]);
   useEffect(() => { availableUpgradesRef.current = availableUpgrades; }, [availableUpgrades]);
   useEffect(() => { playerStatsRef.current = playerStats; }, [playerStats]);
-  useEffect(() => { barrierExtraCountRef.current = barrierExtraCount; }, [barrierExtraCount]);
-  useEffect(() => { barrierHPBonusRef.current = barrierHPBonus; }, [barrierHPBonus]);
   useEffect(() => { hitFlashRef.current = hitFlash; }, [hitFlash]);
   useEffect(() => { selectedAircraftRef.current = selectedAircraft; }, [selectedAircraft]);
 
@@ -164,7 +158,6 @@ function PixelClassicShooter() {
 
   const PIXEL_W = 320;
   const PIXEL_H = 480;
-  const BARRIER_Y = 380;
 
   // boss definitions (10,20,30,40,50,60,70,80,90,100)
   const bossDefinitions = [
@@ -208,37 +201,44 @@ function PixelClassicShooter() {
 
       if (patternType === 0) {
         // 💠 기본 격자 패턴
-        const cols = Math.min(5, 4,  3 + Math.floor(levelNum / 2));
+        const cols = Math.min(5, 3 + Math.floor(levelNum / 2));
         const rows = Math.min(2, 1 + Math.floor(levelNum / 3));
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
+            if (enemies.length >= 10) break;
             enemies.push({ x: 8 + c * 18, y: 8 + r * 14, w: 8, h: 6, dir: 1, hp: enemyHP, baseHp: enemyHP, boss: false });
           }
+          if (enemies.length >= 10) break;
         }
       } else if (patternType === 1) {
         // 🔹 삼각형 형태
-        const rows =  Math.min(4, 3, 2 + Math.floor(levelNum / 2));
+        const rows = Math.min(4, 2 + Math.floor(levelNum / 2));
         for (let r = 0; r < rows; r++) {
           const count = r + 1;
           const startX = (PIXEL_W / 2) - (count * 9);
           for (let c = 0; c < count; c++) {
+            if (enemies.length >= 10) break;
             enemies.push({ x: startX + c * 18, y: 10 + r * 14, w: 8, h: 6, dir: 1, hp: enemyHP, baseHp: enemyHP, boss: false });
           }
+          if (enemies.length >= 10) break;
         }
       } else if (patternType === 2) {
         // 🔸 지그재그 형태
-        const rows = Math.min(5, 4, 3, 2, 1.5 + Math.floor(levelNum / 2));
+        const rows = Math.min(5, 1.5 + Math.floor(levelNum / 2));
         const cols = 2;
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
+            if (enemies.length >= 10) break;
             const offset = (r % 2) * 9;
             enemies.push({ x: 10 + c * 18 + offset, y: 10 + r * 14, w: 8, h: 6, dir: 1, hp: enemyHP, baseHp: enemyHP, boss: false });
           }
+          if (enemies.length >= 10) break;
         }
       } else {
         // 🔹 랜덤 스프레드 형태
-        const count = Math.min(10, 9, 8, 7, 6, 5, 4, 3 + Math.floor(levelNum / 2));
+        const count = Math.min(10, 3 + Math.floor(levelNum / 2));
         for (let i = 0; i < count; i++) {
+          if (enemies.length >= 10) break;
           enemies.push({
             x: Math.random() * (PIXEL_W - 10),
             y: 8 + Math.random() * 40,
@@ -254,20 +254,9 @@ function PixelClassicShooter() {
     }
 
 
-    // barriers: base 3 + extras; hp = base 3 + bonus
-    const baseCount = 3;
-    const totalCount = baseCount + (barrierExtraCountRef.current || 0);
-    const baseHp = 3 + (barrierHPBonusRef.current || 0);
-    const barriers = [];
-    const spacing = Math.floor((PIXEL_W - 40) / Math.max(1, totalCount));
-    for (let i = 0; i < totalCount; i++) {
-      const x = 20 + i * spacing;
-      barriers.push({ x, y: BARRIER_Y, w: 12, h: 6, hp: baseHp });
-    }
-
     const st = gameRef.current;
     st.enemies = enemies;
-    st.barriers = barriers;
+    st.barriers = [];
     st.bullets = [];
     st.enemyBullets = [];
     st.nextWaveScheduled = false;
@@ -275,7 +264,7 @@ function PixelClassicShooter() {
   }
 
   // ----- upgrades pools -----
-  const allUpgrades = ["speed", "fire", "life", "barrierAdd", "barrierHP","attackPower"];
+  const allUpgrades = ["speed", "fire", "life", "attackPower"];
   const rareUpgrades = ["ultraSpeed", "ultraFire", "shield"];
 
   function applyUpgrade(type) {
@@ -291,32 +280,8 @@ function PixelClassicShooter() {
     if (type === "life") {
       setLives((l) => { const nv = l + 1; livesRef.current = nv; return nv; });
     }
-    if (type === "barrierAdd") {
-  setBarrierExtraCount((n) => {
-    const nv = n + 1;
-    barrierExtraCountRef.current = nv;
-
-    // 💡 즉시 새로운 방해물 추가
-    const st = gameRef.current;
-    const baseHp = 3 + (barrierHPBonusRef.current || 0);
-    const totalCount = 3 + nv; // 기본 3개 + 추가
-    const spacing = Math.floor((PIXEL_W - 40) / Math.max(1, totalCount));
-    st.barriers = [];
-    for (let i = 0; i < totalCount; i++) {
-      const x = 20 + i * spacing;
-      st.barriers.push({ x, y: BARRIER_Y, w: 12, h: 6, hp: baseHp });
-    }
-
-    return nv;
-  });
-}
 
     if (type === "attackPower") { setPlayerStats((p) => ({ ...p, attackPower: p.attackPower + 1 }));
-    }
-    if (type === "barrierHP") {
-      setBarrierHPBonus((n) => { const nv = n + 1; barrierHPBonusRef.current = nv; return nv; });
-      // boost existing barriers now
-      gameRef.current.barriers.forEach(b => b.hp += 1);
     }
     if (type === "ultraSpeed") {
       setPlayerStats((p) => { const nv = { ...p, moveSpeed: p.moveSpeed + 30 }; playerStatsRef.current = nv; return nv; });
@@ -438,8 +403,6 @@ function PixelClassicShooter() {
     setShowAircraftSelect(true);
     setSelectedAircraft(null); selectedAircraftRef.current = null;
     setLevel(1); levelRef.current = 1;
-    setBarrierExtraCount(0); barrierExtraCountRef.current = 0;
-    setBarrierHPBonus(0); barrierHPBonusRef.current = 0;
 
     gameRef.current = {
       player: { x: 76, y: 400, w: 10, h: 8, cooldown: 0 },
@@ -712,13 +675,6 @@ function PixelClassicShooter() {
           ctx.fillStyle = `rgb(${red},${green},66)`;
           ctx.fillRect(e.x, e.y, e.w, e.h);
         }
-      }
-
-      // barriers
-      for (const bar of st.barriers) {
-        const color = ["#666", "#999", "#ccc"][Math.max(0, Math.min(2, bar.hp - 1))] || "#333";
-        ctx.fillStyle = color;
-        ctx.fillRect(bar.x, bar.y, bar.w, bar.h);
       }
 
       // UI
@@ -1645,20 +1601,6 @@ if (reverseTriggered) {
         }
       }
 
-      // enemy bullets -> barriers
-      for (let i = st.enemyBullets.length - 1; i >= 0; i--) {
-        const eb = st.enemyBullets[i];
-        for (let j = st.barriers.length - 1; j >= 0; j--) {
-          const bar = st.barriers[j];
-          if (eb.x < bar.x + bar.w && eb.x + eb.w > bar.x && eb.y < bar.y + bar.h && eb.y + eb.h > bar.y) {
-            st.enemyBullets.splice(i, 1);
-            bar.hp -= 1;
-            break;
-          }
-        }
-      }
-      st.barriers = st.barriers.filter(b => b.hp > 0);
-
       // enemy bullets -> player
       for (let i = st.enemyBullets.length - 1; i >= 0; i--) {
         const eb = st.enemyBullets[i];
@@ -1687,13 +1629,28 @@ if (reverseTriggered) {
         }
       }
 
-      // enemy reached barrier line => game over
-      for (const e of st.enemies) {
-        if (e.y + e.h >= BARRIER_Y) {
-          setGameOver(true); gameOverRef.current = true;
-          setRunning(false); runningRef.current = false;
-          break;
+      // 적이 화면 끝까지 내려오면 라이프 감소
+      let enemiesReachedBottom = 0;
+      for (let i = st.enemies.length - 1; i >= 0; i--) {
+        const e = st.enemies[i];
+        if (e.y >= PIXEL_H) {
+          enemiesReachedBottom++;
+          st.enemies.splice(i, 1);
         }
+      }
+      
+      if (enemiesReachedBottom > 0) {
+        setLives((l) => {
+          const nv = l - enemiesReachedBottom;
+          livesRef.current = nv;
+          if (nv <= 0) {
+            setGameOver(true); 
+            gameOverRef.current = true;
+            setRunning(false); 
+            runningRef.current = false;
+          }
+          return Math.max(0, nv);
+        });
       }
 
       // wave cleared?
@@ -1794,8 +1751,6 @@ if (reverseTriggered) {
       stealthDuration: 0,
       originalSpeed: aircraft.stats.moveSpeed
     };
-    setBarrierExtraCount(0); barrierExtraCountRef.current = 0;
-    setBarrierHPBonus(0); barrierHPBonusRef.current = 0;
 
     gameRef.current = {
       player: { x: 76, y: 400, w: 10, h: 8, cooldown: 0 },
@@ -1948,8 +1903,6 @@ if (reverseTriggered) {
                 {u === "speed" && "🚀 Move Speed +10"}
                 {u === "fire" && "🔥 Fire Rate Up"}
                 {u === "life" && "💖 +1 Life"}
-                {u === "barrierAdd" && "🧱 Add Barrier"}
-                {u === "barrierHP" && "💪 Barrier HP +1"}
                 {u === "ultraSpeed" && "⚡ Ultra Speed +30"}
                 {u === "ultraFire" && "💥 Ultra Fire Rate"}
                 {u === "shield" && "🛡️ Add 3 Shield"}
