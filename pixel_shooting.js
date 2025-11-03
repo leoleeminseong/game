@@ -5,6 +5,75 @@ const bossSpecialUpgrades = [
   "diagonalShot", // 대각선 방향으로 발사
   ];
 
+// 비행기 타입 정의
+const aircraftTypes = [
+  {
+    id: "fighter",
+    name: "F-16 Fighter",
+    description: "균형잡힌 전투기",
+    color: "#66d9ff",
+    stats: {
+      lives: 10,
+      moveSpeed: 50,
+      shootCooldown: 0.3,
+      shield: 0,
+      attackPower: 1
+    }
+  },
+  {
+    id: "bomber",
+    name: "B-52 Bomber",
+    description: "강력한 화력, 느린 속도",
+    color: "#ff9966",
+    stats: {
+      lives: 12,
+      moveSpeed: 35,
+      shootCooldown: 0.25,
+      shield: 1,
+      attackPower: 2
+    }
+  },
+  {
+    id: "stealth",
+    name: "Stealth Fighter",
+    description: "빠른 속도, 낮은 체력",
+    color: "#9966ff",
+    stats: {
+      lives: 7,
+      moveSpeed: 70,
+      shootCooldown: 0.2,
+      shield: 0,
+      attackPower: 1
+    }
+  },
+  {
+    id: "interceptor",
+    name: "Interceptor",
+    description: "초고속 연사",
+    color: "#ffff66",
+    stats: {
+      lives: 8,
+      moveSpeed: 60,
+      shootCooldown: 0.15,
+      shield: 0,
+      attackPower: 1
+    }
+  },
+  {
+    id: "tank",
+    name: "Flying Fortress",
+    description: "최고 방어력, 느린 공격",
+    color: "#66ff66",
+    stats: {
+      lives: 15,
+      moveSpeed: 30,
+      shootCooldown: 0.4,
+      shield: 3,
+      attackPower: 1
+    }
+  }
+];
+
 // 보스 스킬을 플레이어 업그레이드로 변환
 const bossSkillToUpgrade = {
   "tripleShot": "playerTripleShot",   // 3발 발사
@@ -28,7 +97,9 @@ function PixelClassicShooter() {
   const [running, setRunning] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [showLevelSelect, setShowLevelSelect] = useState(true);
+  const [showLevelSelect, setShowLevelSelect] = useState(false);
+  const [showAircraftSelect, setShowAircraftSelect] = useState(true);
+  const [selectedAircraft, setSelectedAircraft] = useState(null);
   const [availableUpgrades, setAvailableUpgrades] = useState([]);
   const [hitFlash, setHitFlash] = useState(false);
 
@@ -48,6 +119,7 @@ function PixelClassicShooter() {
   const barrierExtraCountRef = useRef(barrierExtraCount);
   const barrierHPBonusRef = useRef(barrierHPBonus);
   const hitFlashRef = useRef(false);
+  const selectedAircraftRef = useRef(selectedAircraft);
 
   useEffect(() => { livesRef.current = lives; }, [lives]);
   useEffect(() => { levelRef.current = level; }, [level]);
@@ -59,6 +131,7 @@ function PixelClassicShooter() {
   useEffect(() => { barrierExtraCountRef.current = barrierExtraCount; }, [barrierExtraCount]);
   useEffect(() => { barrierHPBonusRef.current = barrierHPBonus; }, [barrierHPBonus]);
   useEffect(() => { hitFlashRef.current = hitFlash; }, [hitFlash]);
+  useEffect(() => { selectedAircraftRef.current = selectedAircraft; }, [selectedAircraft]);
 
   function setHitFlashTimed() {
     setHitFlash(true);
@@ -352,12 +425,14 @@ function PixelClassicShooter() {
 
   // ----- restart -----
   function restartGame() {
-    setLives(10); livesRef.current = 10;
-    setLevel(1); levelRef.current = 1;
+    // 비행기 선택 화면으로 돌아가기
     setGameOver(false); gameOverRef.current = false;
-    setRunning(true); runningRef.current = true;
+    setRunning(false); runningRef.current = false;
     setShowUpgrade(false); showUpgradeRef.current = false;
-    setPlayerStats({ moveSpeed: 50, shootCooldown: 0.3, shield: 0 }); playerStatsRef.current = { moveSpeed: 50, shootCooldown: 0.3, shield: 0 };
+    setShowLevelSelect(false);
+    setShowAircraftSelect(true);
+    setSelectedAircraft(null); selectedAircraftRef.current = null;
+    setLevel(1); levelRef.current = 1;
     setBarrierExtraCount(0); barrierExtraCountRef.current = 0;
     setBarrierHPBonus(0); barrierHPBonusRef.current = 0;
 
@@ -365,7 +440,6 @@ function PixelClassicShooter() {
       player: { x: 76, y: 400, w: 10, h: 8, cooldown: 0 },
       bullets: [], enemyBullets: [], enemies: [], barriers: [], lastEnemyShotTime: 0, nextWaveScheduled: false
     };
-    spawnWave(1);
   }
 
   // ----- main loop (runs once) -----
@@ -387,9 +461,11 @@ function PixelClassicShooter() {
 
       // player (F16 style)
       const p = st.player;
+      const aircraft = selectedAircraftRef.current || aircraftTypes[0];
+      const baseColor = aircraft.color;
       
       // Base color
-      ctx.fillStyle = hitFlashRef.current ? "#ff3333" : "#66d9ff";
+      ctx.fillStyle = hitFlashRef.current ? "#ff3333" : baseColor;
       
       // Main body
       ctx.fillRect(p.x + 3, p.y, p.w - 6, p.h + 2); // Fuselage
@@ -401,8 +477,12 @@ function PixelClassicShooter() {
       // Tail
       ctx.fillRect(p.x + 3, p.y + 6, 2, 2); // Vertical stabilizer
       
-      // Cockpit
-      ctx.fillStyle = hitFlashRef.current ? "#ff9999" : "#99ffff";
+      // Cockpit (lighter shade)
+      const lighterColor = hitFlashRef.current ? "#ff9999" : baseColor.replace(/[0-9a-f]{2}$/i, (m) => {
+        const val = parseInt(m, 16);
+        return Math.min(255, val + 50).toString(16).padStart(2, '0');
+      });
+      ctx.fillStyle = lighterColor;
       ctx.fillRect(p.x + 3, p.y + 1, 2, 2);
       
       // Shield effect
@@ -1435,16 +1515,45 @@ if (reverseTriggered) {
     applyUpgrade(u);
   }
 
+  // ----- select aircraft -----
+  function selectAircraft(aircraftId) {
+    const aircraft = aircraftTypes.find(a => a.id === aircraftId);
+    if (aircraft) {
+      setSelectedAircraft(aircraft);
+      selectedAircraftRef.current = aircraft;
+      setShowAircraftSelect(false);
+      setShowLevelSelect(true);
+    }
+  }
+
   // ----- start game with selected level -----
   function startGameAtLevel(selectedLevel) {
-    setLives(10); livesRef.current = 10;
-    setLevel(selectedLevel); levelRef.current = selectedLevel;
-    setGameOver(false); gameOverRef.current = false;
-    setRunning(true); runningRef.current = true;
-    setShowUpgrade(false); showUpgradeRef.current = false;
+    const aircraft = selectedAircraftRef.current || aircraftTypes[0];
+    
+    setLives(aircraft.stats.lives); 
+    livesRef.current = aircraft.stats.lives;
+    setLevel(selectedLevel); 
+    levelRef.current = selectedLevel;
+    setGameOver(false); 
+    gameOverRef.current = false;
+    setRunning(true); 
+    runningRef.current = true;
+    setShowUpgrade(false); 
+    showUpgradeRef.current = false;
     setShowLevelSelect(false);
-    setPlayerStats({ moveSpeed: 50, shootCooldown: 0.3, shield: 0 }); 
-    playerStatsRef.current = { moveSpeed: 50, shootCooldown: 0.3, shield: 0 };
+    
+    setPlayerStats({ 
+      moveSpeed: aircraft.stats.moveSpeed, 
+      shootCooldown: aircraft.stats.shootCooldown, 
+      shield: aircraft.stats.shield,
+      attackPower: aircraft.stats.attackPower
+    }); 
+    playerStatsRef.current = { 
+      moveSpeed: aircraft.stats.moveSpeed, 
+      shootCooldown: aircraft.stats.shootCooldown, 
+      shield: aircraft.stats.shield,
+      attackPower: aircraft.stats.attackPower
+    };
     setBarrierExtraCount(0); barrierExtraCountRef.current = 0;
     setBarrierHPBonus(0); barrierHPBonusRef.current = 0;
 
@@ -1462,7 +1571,60 @@ if (reverseTriggered) {
         <canvas ref={canvasRef} style={{ imageRendering: "pixelated", width: 320, height: 480, display: "block" }} />
       </div>
 
-      {showLevelSelect ? (
+      {showAircraftSelect ? (
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          background: "#222",
+          padding: 30,
+          borderRadius: 10,
+          border: "2px solid #555",
+          zIndex: 100,
+          maxWidth: "80%"
+        }}>
+          <h2 style={{ margin: "0 0 20px 0", color: "#fff" }}>✈️ 비행기 선택</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 15 }}>
+            {aircraftTypes.map((aircraft) => (
+              <div
+                key={aircraft.id}
+                onClick={() => selectAircraft(aircraft.id)}
+                style={{
+                  padding: "15px",
+                  background: "#333",
+                  border: "2px solid #666",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  transition: "all 0.3s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.border = `2px solid ${aircraft.color}`;
+                  e.currentTarget.style.transform = "scale(1.05)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.border = "2px solid #666";
+                  e.currentTarget.style.transform = "scale(1)";
+                }}
+              >
+                <div style={{ fontSize: "16px", fontWeight: "bold", color: aircraft.color, marginBottom: "8px" }}>
+                  {aircraft.name}
+                </div>
+                <div style={{ fontSize: "12px", color: "#aaa", marginBottom: "10px" }}>
+                  {aircraft.description}
+                </div>
+                <div style={{ fontSize: "11px", textAlign: "left", color: "#ccc" }}>
+                  <div>💖 Lives: {aircraft.stats.lives}</div>
+                  <div>🚀 Speed: {aircraft.stats.moveSpeed}</div>
+                  <div>🔥 Fire Rate: {(1/aircraft.stats.shootCooldown).toFixed(1)}/s</div>
+                  <div>🛡️ Shield: {aircraft.stats.shield}</div>
+                  <div>💥 Attack: {aircraft.stats.attackPower}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : showLevelSelect ? (
         <div style={{
           position: "absolute",
           top: "50%",
@@ -1509,6 +1671,14 @@ if (reverseTriggered) {
               setRunning(false);
               runningRef.current = false;
             }} style={{ marginLeft: 8 }}>Level Select</button>
+            <button onClick={() => {
+              setShowAircraftSelect(true);
+              setShowLevelSelect(false);
+              setRunning(false);
+              runningRef.current = false;
+              setGameOver(false);
+              gameOverRef.current = false;
+            }} style={{ marginLeft: 8 }}>Change Aircraft</button>
           </div>
         </div>
       )}
