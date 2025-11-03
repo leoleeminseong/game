@@ -696,9 +696,16 @@ function PixelClassicShooter() {
           if (e.skill === "ultimate") {
             // 최종 보스 특별 렌더링
             const isPhase2 = e.phase2 === true;
+            const isPhase3 = e.phase3 === true;
             const gradient = ctx.createLinearGradient(e.x, e.y, e.x + e.w, e.y + e.h);
             
-            if (isPhase2) {
+            if (isPhase3) {
+              // 3페이즈 색상 (극도로 강렬하고 빛남)
+              gradient.addColorStop(0, "#ffff00");
+              gradient.addColorStop(0.3, "#ff0000");
+              gradient.addColorStop(0.6, "#ff00ff");
+              gradient.addColorStop(1, "#0000ff");
+            } else if (isPhase2) {
               // 2페이즈 색상 (더 어둡고 강렬함)
               gradient.addColorStop(0, "#8800ff");
               gradient.addColorStop(0.5, "#ff0088");
@@ -712,9 +719,9 @@ function PixelClassicShooter() {
             
             // 보스 주위에 에너지 오라 효과
             ctx.save();
-            ctx.globalAlpha = isPhase2 ? 0.5 : 0.3;
-            for (let i = 0; i < (isPhase2 ? 5 : 3); i++) {
-              const pulseScale = 1 + Math.sin(performance.now() / (isPhase2 ? 150 : 200)) * 0.1;
+            ctx.globalAlpha = isPhase3 ? 0.7 : (isPhase2 ? 0.5 : 0.3);
+            for (let i = 0; i < (isPhase3 ? 8 : (isPhase2 ? 5 : 3)); i++) {
+              const pulseScale = 1 + Math.sin(performance.now() / (isPhase3 ? 100 : (isPhase2 ? 150 : 200))) * 0.15;
               ctx.fillRect(
                 e.x - i * 2 * pulseScale, 
                 e.y - i * 2 * pulseScale, 
@@ -726,10 +733,10 @@ function PixelClassicShooter() {
             
             // 보스 주위에 전기 효과
             ctx.save();
-            ctx.strokeStyle = isPhase2 ? "#ff00ff" : "#00ffff";
-            ctx.lineWidth = isPhase2 ? 2 : 1;
+            ctx.strokeStyle = isPhase3 ? "#ffff00" : (isPhase2 ? "#ff00ff" : "#00ffff");
+            ctx.lineWidth = isPhase3 ? 3 : (isPhase2 ? 2 : 1);
             const time = performance.now() / 1000;
-            const lightningCount = isPhase2 ? 12 : 8;
+            const lightningCount = isPhase3 ? 16 : (isPhase2 ? 12 : 8);
             for (let i = 0; i < lightningCount; i++) {
               const angle = (time + i * Math.PI / (lightningCount / 2)) % (Math.PI * 2);
               ctx.beginPath();
@@ -738,8 +745,8 @@ function PixelClassicShooter() {
                 e.y + e.h/2 + Math.sin(angle) * (e.h/2 + 5)
               );
               ctx.lineTo(
-                e.x + e.w/2 + Math.cos(angle) * (e.w/2 + (isPhase2 ? 20 : 15)),
-                e.y + e.h/2 + Math.sin(angle) * (e.h/2 + (isPhase2 ? 20 : 15))
+                e.x + e.w/2 + Math.cos(angle) * (e.w/2 + (isPhase3 ? 25 : (isPhase2 ? 20 : 15))),
+                e.y + e.h/2 + Math.sin(angle) * (e.h/2 + (isPhase3 ? 25 : (isPhase2 ? 20 : 15)))
               );
               ctx.stroke();
             }
@@ -774,9 +781,29 @@ function PixelClassicShooter() {
 
           // 보스 이름 (보스 아래에 표시)
           ctx.shadowBlur = 0; // 그림자 효과 초기화
-          const isPhase2Display = e.boss && e.skill === "ultimate" && e.phase2;
-          const bossNameText = e.skill === "ultimate" && isPhase2Display ? e.name + " [PHASE 2]" : e.name;
-          ctx.fillStyle = e.skill === "ultimate" ? (isPhase2Display ? "#ff00ff" : "#ffff99") : "#ff99ff";
+          const isPhase3Display = e.boss && e.skill === "ultimate" && e.phase3;
+          const isPhase2Display = e.boss && e.skill === "ultimate" && e.phase2 && !e.phase3;
+          let bossNameText = e.name;
+          if (e.skill === "ultimate") {
+            if (isPhase3Display) {
+              bossNameText = e.name + " ⚡[FINAL PHASE]⚡";
+            } else if (isPhase2Display) {
+              bossNameText = e.name + " [PHASE 2]";
+            }
+          }
+          
+          let nameColor = "#ff99ff";
+          if (e.skill === "ultimate") {
+            if (isPhase3Display) {
+              nameColor = "#ffff00";
+            } else if (isPhase2Display) {
+              nameColor = "#ff00ff";
+            } else {
+              nameColor = "#ffff99";
+            }
+          }
+          
+          ctx.fillStyle = nameColor;
           ctx.font = e.skill === "ultimate" ? "bold 10px monospace" : "bold 8px monospace";
           const nameWidth = ctx.measureText(bossNameText).width;
           
@@ -790,7 +817,7 @@ function PixelClassicShooter() {
           );
           
           // 이름 텍스트
-          ctx.fillStyle = e.skill === "ultimate" ? (isPhase2Display ? "#ff00ff" : "#ffff99") : "#ff99ff";
+          ctx.fillStyle = nameColor;
           ctx.fillText(
             bossNameText,
             e.x + e.w/2 - nameWidth/2,
@@ -1892,26 +1919,89 @@ if (reverseTriggered) {
               bulletRemoved = true;
             }
 
-            // 최종 보스 2페이즈 전환 체크
-            if (e.boss && e.skill === "ultimate" && e.hp <= 10 && !e.phase2) {
-              e.phase2 = true;
-              e.hp = e.baseHp; // 체력 완전 회복
-              e.maxPhase2Hp = e.baseHp; // 2페이즈 최대 체력 저장
-              // 2페이즈 시작 효과 (전방위 폭발)
-              for (let k = 0; k < 32; k++) {
-                const angle = (k * 11.25) * Math.PI / 180;
-                st.enemyBullets.push({
-                  x: e.x + e.w / 2,
-                  y: e.y + e.h / 2,
-                  w: 5,
-                  h: 5,
-                  dy: Math.sin(angle) * 250,
-                  dx: Math.cos(angle) * 250,
-                  color: "#ff0000",
-                  phase2: true
-                });
+            // 최종 보스 페이즈 전환 체크 (200레벨 보스만)
+            if (e.boss && e.skill === "ultimate" && levelRef.current === 200) {
+              // 3페이즈 전환 (체력 30% 이하)
+              if (e.phase2 && e.hp <= e.maxPhase2Hp * 0.3 && !e.phase3) {
+                e.phase3 = true;
+                e.hp = e.baseHp * 1.5; // 체력 1.5배로 회복
+                e.maxPhase3Hp = e.baseHp * 1.5;
+                
+                // 3페이즈 시작 효과 - 화려한 나선형 패턴
+                for (let k = 0; k < 64; k++) {
+                  const angle = (k * 5.625) * Math.PI / 180;
+                  const speed = 200 + (k % 3) * 50;
+                  st.enemyBullets.push({
+                    x: e.x + e.w / 2,
+                    y: e.y + e.h / 2,
+                    w: 6,
+                    h: 6,
+                    dy: Math.sin(angle) * speed,
+                    dx: Math.cos(angle) * speed,
+                    color: "#ffff00",
+                    phase3: true
+                  });
+                }
+                
+                // 추가 레이저 공격
+                for (let k = 0; k < 8; k++) {
+                  const angle = (k * 45) * Math.PI / 180;
+                  for (let len = 0; len < 10; len++) {
+                    st.enemyBullets.push({
+                      x: e.x + e.w / 2 + Math.cos(angle) * len * 8,
+                      y: e.y + e.h / 2 + Math.sin(angle) * len * 8,
+                      w: 4,
+                      h: 4,
+                      dy: Math.sin(angle) * 300,
+                      dx: Math.cos(angle) * 300,
+                      color: "#ff00ff",
+                      laser: true
+                    });
+                  }
+                }
+                break;
               }
-              break;
+              
+              // 2페이즈 전환 (체력 10 이하)
+              if (e.hp <= 10 && !e.phase2) {
+                e.phase2 = true;
+                e.hp = e.baseHp; // 체력 완전 회복
+                e.maxPhase2Hp = e.baseHp; // 2페이즈 최대 체력 저장
+                
+                // 2페이즈 시작 효과 - 전방위 폭발 + 회전 패턴
+                for (let k = 0; k < 48; k++) {
+                  const angle = (k * 7.5) * Math.PI / 180;
+                  st.enemyBullets.push({
+                    x: e.x + e.w / 2,
+                    y: e.y + e.h / 2,
+                    w: 5,
+                    h: 5,
+                    dy: Math.sin(angle) * 250,
+                    dx: Math.cos(angle) * 250,
+                    color: "#ff0000",
+                    phase2: true
+                  });
+                }
+                
+                // 추가 원형 파동
+                for (let ring = 0; ring < 3; ring++) {
+                  setTimeout(() => {
+                    for (let k = 0; k < 24; k++) {
+                      const angle = (k * 15) * Math.PI / 180;
+                      st.enemyBullets.push({
+                        x: e.x + e.w / 2,
+                        y: e.y + e.h / 2,
+                        w: 4,
+                        h: 4,
+                        dy: Math.sin(angle) * 180,
+                        dx: Math.cos(angle) * 180,
+                        color: "#ff8800"
+                      });
+                    }
+                  }, ring * 200);
+                }
+                break;
+              }
             }
 
             if (e.hp <= 0) {
