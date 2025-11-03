@@ -1,12 +1,13 @@
 // Firebase 설정
 const firebaseConfig = {
-  apiKey: "AIzaSyBXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXx", // 여기에 실제 API Key 입력
-  authDomain: "your-project.firebaseapp.com",
-  databaseURL: "https://your-project-default-rtdb.firebaseio.com",
-  projectId: "your-project",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "123456789",
-  appId: "1:123456789:web:abcdef123456"
+  apiKey: "AIzaSyDtBJ2eV1gqgORORFV4K2GC9U3e5lanliI",
+  authDomain: "pixel-shooter-game.firebaseapp.com",
+  databaseURL: "https://pixel-shooter-game-default-rtdb.firebaseio.com",
+  projectId: "pixel-shooter-game",
+  storageBucket: "pixel-shooter-game.firebasestorage.app",
+  messagingSenderId: "51124311691",
+  appId: "1:51124311691:web:d6bdd8b63eda2dedf3668e",
+  measurementId: "G-C9R12X8D8F"
 };
 
 // Firebase 초기화
@@ -174,6 +175,17 @@ function PixelClassicShooter() {
   const [showModeSelect, setShowModeSelect] = useState(false);
   const [selectedAircraft, setSelectedAircraft] = useState(null);
   const [isInfiniteMode, setIsInfiniteMode] = useState(false);
+  
+  // 화면 크기 조절 (localStorage에서 저장된 값 불러오기, 기본값 1.5배)
+  const [screenScale, setScreenScale] = useState(() => {
+    const saved = localStorage.getItem('screenScale');
+    return saved ? parseFloat(saved) : 1.5;
+  });
+  
+  // 화면 크기 변경 시 localStorage에 저장
+  useEffect(() => {
+    localStorage.setItem('screenScale', screenScale.toString());
+  }, [screenScale]);
   
   // 리더보드 데이터
   const [leaderboardData, setLeaderboardData] = useState(() => {
@@ -665,6 +677,11 @@ function PixelClassicShooter() {
     function kd(e) {
       keysRef.current[e.key] = true;
       if (gameOverRef.current && e.key === "Enter") restartGame();
+      // F11 키로 전체 화면 전환
+      if (e.key === "F11") {
+        e.preventDefault();
+        toggleFullscreen();
+      }
     }
     function ku(e) { keysRef.current[e.key] = false; }
     window.addEventListener("keydown", kd);
@@ -689,6 +706,19 @@ function PixelClassicShooter() {
       player: { x: 76, y: 400, w: 10, h: 8, cooldown: 0 },
       bullets: [], enemyBullets: [], enemies: [], barriers: [], lastEnemyShotTime: 0, nextWaveScheduled: false
     };
+  }
+
+  // ----- fullscreen toggle -----
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => {
+        console.log('Fullscreen error:', err);
+      });
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+    }
   }
 
   // ----- main loop (runs once) -----
@@ -2366,9 +2396,91 @@ if (reverseTriggered) {
 
   // ----- render UI -----
   return (
-    <div style={{ textAlign: "center", color: "#ddd", fontFamily: "monospace", paddingTop: 8 }}>
+    <div style={{ textAlign: "center", color: "#ddd", fontFamily: "monospace", paddingTop: 8, position: "relative" }}>
+      {/* 전체 화면 버튼 (항상 표시) */}
+      <button
+        onClick={toggleFullscreen}
+        style={{
+          position: "fixed",
+          top: "10px",
+          right: "10px",
+          padding: "10px 15px",
+          background: "rgba(15, 52, 96, 0.8)",
+          color: "#fff",
+          border: "2px solid #0f3460",
+          borderRadius: "8px",
+          cursor: "pointer",
+          fontSize: "14px",
+          fontWeight: "bold",
+          zIndex: 1000,
+          transition: "all 0.3s",
+          backdropFilter: "blur(5px)"
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "rgba(22, 33, 62, 0.9)";
+          e.currentTarget.style.transform = "scale(1.05)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "rgba(15, 52, 96, 0.8)";
+          e.currentTarget.style.transform = "scale(1)";
+        }}
+        title="Toggle Fullscreen (F11)"
+      >
+        🖥️ Fullscreen
+      </button>
+
+      {/* 화면 크기 조절 슬라이더 */}
+      <div style={{
+        position: "fixed",
+        top: "60px",
+        right: "10px",
+        padding: "15px",
+        background: "rgba(15, 52, 96, 0.8)",
+        border: "2px solid #0f3460",
+        borderRadius: "8px",
+        zIndex: 1000,
+        backdropFilter: "blur(5px)",
+        minWidth: "200px"
+      }}>
+        <div style={{ 
+          color: "#fff", 
+          fontSize: "12px", 
+          marginBottom: "8px",
+          fontWeight: "bold"
+        }}>
+          🔍 Screen Scale: {screenScale.toFixed(1)}x
+        </div>
+        <input
+          type="range"
+          min="0.5"
+          max="3"
+          step="0.1"
+          value={screenScale}
+          onChange={(e) => setScreenScale(parseFloat(e.target.value))}
+          style={{
+            width: "100%",
+            cursor: "pointer"
+          }}
+        />
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          fontSize: "10px",
+          color: "#aaa",
+          marginTop: "5px"
+        }}>
+          <span>0.5x</span>
+          <span>3.0x</span>
+        </div>
+      </div>
+
       <div style={{ display: "inline-block", background: "#071020", padding: 6, borderRadius: 8 }}>
-        <canvas ref={canvasRef} style={{ imageRendering: "pixelated", width: 320, height: 480, display: "block" }} />
+        <canvas ref={canvasRef} style={{ 
+          imageRendering: "pixelated", 
+          width: 320 * screenScale, 
+          height: 480 * screenScale, 
+          display: "block" 
+        }} />
       </div>
 
       {/* 메인 메뉴 */}
@@ -2460,7 +2572,8 @@ if (reverseTriggered) {
           
           <div style={{ marginTop: "30px", fontSize: "12px", color: "#aaa" }}>
             <div>Controls: Arrow Keys - Move | Space - Shoot | W - Skill</div>
-            <div style={{ marginTop: "5px" }}>Version 1.0 | Made with ❤️</div>
+            <div style={{ marginTop: "5px" }}>Press F11 for Fullscreen</div>
+            <div style={{ marginTop: "5px" }}>Version 2.0 | Made with ❤️</div>
           </div>
           
           {playerName && (
