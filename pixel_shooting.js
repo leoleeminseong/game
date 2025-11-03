@@ -39,9 +39,9 @@ const aircraftTypes = [
   {
     id: "stealth",
     name: "Stealth Fighter",
-    description: "빠른 속도, 낮은 체력",
+    description: "High speed, Low HP",
     skillName: "Stealth Mode",
-    skillDesc: "무적 + 고속이동",
+    skillDesc: "Invincible + Speed boost",
     color: "#9966ff",
     stats: {
       lives: 7,
@@ -54,9 +54,9 @@ const aircraftTypes = [
   {
     id: "interceptor",
     name: "Interceptor",
-    description: "초고속 연사",
+    description: "Ultra rapid fire",
     skillName: "Laser Beam",
-    skillDesc: "관통 레이저",
+    skillDesc: "Piercing laser",
     color: "#ffff66",
     stats: {
       lives: 8,
@@ -69,9 +69,9 @@ const aircraftTypes = [
   {
     id: "tank",
     name: "Flying Fortress",
-    description: "최고 방어력, 느린 공격",
+    description: "Max defense, Slow attack",
     skillName: "Shield Burst",
-    skillDesc: "전방위 총알",
+    skillDesc: "Omnidirectional bullets",
     color: "#66ff66",
     stats: {
       lives: 15,
@@ -84,12 +84,12 @@ const aircraftTypes = [
   {
     id: "phoenix",
     name: "PHOENIX X-99",
-    description: "⭐ 궁극의 전투기 ⭐ (101-200 전용)",
+    description: "⭐ Ultimate Fighter ⭐ (Level 101-200)",
     skillName: "Phoenix Storm",
-    skillDesc: "전방위 섬멸 공격 + 200레벨까지 진행 가능",
+    skillDesc: "Omnidirectional attack + Level 200 capable",
     color: "#ff0080",
     locked: true,
-    unlockCondition: "F-16 Fighter로 100레벨 클리어",
+    unlockCondition: "Clear level 100 with F-16 Fighter",
     stats: {
       lives: 20,
       moveSpeed: 80,
@@ -101,12 +101,12 @@ const aircraftTypes = [
   {
     id: "godmode",
     name: "⚡ DIVINE DESTROYER ⚡",
-    description: "🌌 신의 영역 - 무한 모드 전용 🌌",
+    description: "🌌 Divine Realm - Infinite Mode Only 🌌",
     skillName: "Divine Annihilation",
-    skillDesc: "절대 파괴력 + 무제한 레벨 진행",
+    skillDesc: "Absolute power + Unlimited levels",
     color: "#ffff00",
     locked: true,
-    unlockCondition: "200레벨 클리어 + 모든 비행기로 100레벨 클리어",
+    unlockCondition: "Clear level 200 + Clear level 100 with all aircraft",
     stats: {
       lives: 50,
       moveSpeed: 120,
@@ -143,20 +143,13 @@ function PixelClassicShooter() {
   const [showLevelSelect, setShowLevelSelect] = useState(false);
   const [showAircraftSelect, setShowAircraftSelect] = useState(false);
   const [showMainMenu, setShowMainMenu] = useState(true);
-  const [showSettings, setShowSettings] = useState(false);
   const [showModeSelect, setShowModeSelect] = useState(false);
   const [selectedAircraft, setSelectedAircraft] = useState(null);
   const [isInfiniteMode, setIsInfiniteMode] = useState(false);
   
-  // 설정 state
-  const [soundEnabled, setSoundEnabled] = useState(() => {
-    const saved = localStorage.getItem('soundEnabled');
-    return saved !== null ? saved === 'true' : true;
-  });
-  const [musicVolume, setMusicVolume] = useState(() => {
-    const saved = localStorage.getItem('musicVolume');
-    return saved !== null ? parseInt(saved) : 50;
-  });
+  // 번역 - 기본 언어: 영어
+  const lang = 'en';
+  
   const [availableUpgrades, setAvailableUpgrades] = useState([]);
   const [hitFlash, setHitFlash] = useState(false);
   const [gameCleared, setGameCleared] = useState(() => {
@@ -2307,41 +2300,13 @@ if (reverseTriggered) {
                 e.currentTarget.style.transform = "scale(1)";
               }}
             >
-              🎮 게임 시작
-            </button>
-            
-            <button
-              onClick={() => {
-                setShowMainMenu(false);
-                setShowSettings(true);
-              }}
-              style={{
-                padding: "15px 30px",
-                background: "linear-gradient(135deg, #0f3460 0%, #16213e 100%)",
-                color: "#fff",
-                border: "2px solid #0f3460",
-                borderRadius: "10px",
-                cursor: "pointer",
-                fontSize: "18px",
-                fontWeight: "bold",
-                transition: "all 0.3s"
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = "linear-gradient(135deg, #16213e 0%, #0f3460 100%)";
-                e.currentTarget.style.transform = "scale(1.05)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = "linear-gradient(135deg, #0f3460 0%, #16213e 100%)";
-                e.currentTarget.style.transform = "scale(1)";
-              }}
-            >
-              ⚙️ 설정
+              🎮 Start Game
             </button>
           </div>
           
           <div style={{ marginTop: "30px", fontSize: "12px", color: "#aaa" }}>
-            <div>조작: 방향키 이동 | 스페이스 발사 | W 스킬</div>
-            <div style={{ marginTop: "5px" }}>버전 1.0 | Made with ❤️</div>
+            <div>Controls: Arrow Keys - Move | Space - Shoot | W - Skill</div>
+            <div style={{ marginTop: "5px" }}>Version 1.0 | Made with ❤️</div>
           </div>
         </div>
       ) : showModeSelect ? (
@@ -2357,7 +2322,7 @@ if (reverseTriggered) {
           zIndex: 100,
           minWidth: "500px"
         }}>
-          <h2 style={{ margin: "0 0 30px 0", color: "#fff", textAlign: "center" }}>🎮 게임 모드 선택</h2>
+          <h2 style={{ margin: "0 0 30px 0", color: "#fff", textAlign: "center" }}>🎮 Select Game Mode</h2>
           
           <div style={{ display: "flex", flexDirection: "column", gap: "20px", marginBottom: "30px" }}>
             {/* Normal Mode */}
@@ -2388,10 +2353,10 @@ if (reverseTriggered) {
                 e.currentTarget.style.transform = "scale(1)";
               }}
             >
-              <div style={{ fontSize: "24px", marginBottom: "10px" }}>🎯 일반 모드</div>
-              <div style={{ fontSize: "14px", opacity: 0.9 }}>• 레벨 1-100: 모든 비행기 사용 가능</div>
-              <div style={{ fontSize: "14px", opacity: 0.9 }}>• 레벨 101-200: 피닉스 X-99 / 신의 파괴자 전용</div>
-              <div style={{ fontSize: "14px", opacity: 0.9 }}>• 보스 도전 및 비행기 해금</div>
+              <div style={{ fontSize: "24px", marginBottom: "10px" }}>🎯 Normal Mode</div>
+              <div style={{ fontSize: "14px", opacity: 0.9 }}>• Level 1-100: All aircraft available</div>
+              <div style={{ fontSize: "14px", opacity: 0.9 }}>• Level 101-200: Phoenix X-99 / Divine Destroyer only</div>
+              <div style={{ fontSize: "14px", opacity: 0.9 }}>• Challenge bosses and unlock aircraft</div>
             </button>
             
             {/* Infinite Mode */}
@@ -2423,11 +2388,11 @@ if (reverseTriggered) {
               }}
             >
               <div style={{ fontSize: "24px", marginBottom: "10px" }}>
-                ♾️ 무한 모드
+                ♾️ Infinite Mode
               </div>
-              <div style={{ fontSize: "14px", opacity: 0.9 }}>• 레벨 201부터 시작</div>
-              <div style={{ fontSize: "14px", opacity: 0.9 }}>• 모든 비행기 사용 가능</div>
-              <div style={{ fontSize: "14px", opacity: 0.9 }}>• 끝없는 도전과 최고 기록 갱신</div>
+              <div style={{ fontSize: "14px", opacity: 0.9 }}>• Starts from level 201</div>
+              <div style={{ fontSize: "14px", opacity: 0.9 }}>• All aircraft available</div>
+              <div style={{ fontSize: "14px", opacity: 0.9 }}>• Endless challenge and high score</div>
             </button>
           </div>
           
@@ -2455,76 +2420,8 @@ if (reverseTriggered) {
               e.currentTarget.style.background = "#555";
             }}
           >
-            ← 메인 메뉴로 돌아가기
+            ← Back to Main Menu
           </button>
-        </div>
-      ) : showSettings ? (
-        <div style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          background: "#222",
-          padding: 40,
-          borderRadius: 15,
-          border: "2px solid #555",
-          zIndex: 100,
-          minWidth: "400px"
-        }}>
-          <h2 style={{ margin: "0 0 30px 0", color: "#fff" }}>⚙️ 설정</h2>
-          
-          <div style={{ textAlign: "left", marginBottom: "20px" }}>
-            <label style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "15px" }}>
-              <input 
-                type="checkbox" 
-                checked={soundEnabled}
-                onChange={(e) => {
-                  setSoundEnabled(e.target.checked);
-                  localStorage.setItem('soundEnabled', e.target.checked);
-                }}
-                style={{ width: "20px", height: "20px", cursor: "pointer" }}
-              />
-              <span style={{ fontSize: "16px" }}>🔊 사운드 효과</span>
-            </label>
-            
-            <div style={{ marginBottom: "10px" }}>
-              <label style={{ fontSize: "16px", display: "block", marginBottom: "10px" }}>
-                🎵 음악 볼륨: {musicVolume}%
-              </label>
-              <input 
-                type="range" 
-                min="0" 
-                max="100" 
-                value={musicVolume}
-                onChange={(e) => {
-                  setMusicVolume(parseInt(e.target.value));
-                  localStorage.setItem('musicVolume', e.target.value);
-                }}
-                style={{ width: "100%", cursor: "pointer" }}
-              />
-            </div>
-          </div>
-          
-          <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
-            <button
-              onClick={() => {
-                setShowSettings(false);
-                setShowMainMenu(true);
-              }}
-              style={{
-                padding: "10px 20px",
-                background: "#4CAF50",
-                color: "#fff",
-                border: "none",
-                borderRadius: "5px",
-                cursor: "pointer",
-                fontSize: "14px",
-                fontWeight: "bold"
-              }}
-            >
-              ✓ 저장하고 돌아가기
-            </button>
-          </div>
         </div>
       ) : showAircraftSelect ? (
         <div style={{
@@ -2541,7 +2438,7 @@ if (reverseTriggered) {
           maxHeight: "90vh",
           overflowY: "auto"
         }}>
-          <h2 style={{ margin: "0 0 20px 0", color: "#fff", textAlign: "center" }}>✈️ 비행기 선택</h2>
+          <h2 style={{ margin: "0 0 20px 0", color: "#fff", textAlign: "center" }}>✈️ Select Aircraft</h2>
           
           {/* 저장/불러오기/리셋 버튼 */}
           <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: "20px" }}>
@@ -2554,7 +2451,7 @@ if (reverseTriggered) {
                   aircraftClears: aircraftClears
                 };
                 localStorage.setItem('pixelShooterSave', JSON.stringify(saveData));
-                alert('💾 게임이 저장되었습니다!');
+                alert('💾 Game saved!');
               }}
               style={{
                 padding: "8px 15px",
@@ -2567,7 +2464,7 @@ if (reverseTriggered) {
                 fontWeight: "bold"
               }}
             >
-              💾 저장
+              💾 Save
             </button>
             <button
               onClick={() => {
@@ -2582,9 +2479,9 @@ if (reverseTriggered) {
                   localStorage.setItem('phoenixUnlocked', saveData.phoenixUnlocked ? 'true' : 'false');
                   localStorage.setItem('godmodeUnlocked', saveData.godmodeUnlocked ? 'true' : 'false');
                   localStorage.setItem('aircraftClears', JSON.stringify(saveData.aircraftClears || {}));
-                  alert('📂 저장된 게임을 불러왔습니다!');
+                  alert('📂 Game loaded!');
                 } else {
-                  alert('❌ 저장된 데이터가 없습니다!');
+                  alert('❌ No saved data!');
                 }
               }}
               style={{
@@ -2598,24 +2495,24 @@ if (reverseTriggered) {
                 fontWeight: "bold"
               }}
             >
-              📂 불러오기
+              📂 Load
             </button>
             <button
               onClick={() => {
-                if (confirm('⚠️ 현재 진행 상황이 초기화됩니다. (저장된 데이터는 유지됨) 계속하시겠습니까?')) {
+                if (confirm('⚠️ This will reset your current progress. (Saved data will be kept) Continue?')) {
                   localStorage.removeItem('pixelShooterCleared');
                   localStorage.removeItem('phoenixUnlocked');
                   localStorage.removeItem('godmodeUnlocked');
                   localStorage.removeItem('phoenixStageCleared');
                   localStorage.removeItem('aircraftClears');
-                  // localStorage.removeItem('pixelShooterSave'); // 저장된 데이터는 유지
+                  // localStorage.removeItem('pixelShooterSave'); // Keep saved data
                   setGameCleared(false);
                   setPhoenixUnlocked(false);
                   setGodmodeUnlocked(false);
                   setShowPhoenixUnlock(false);
                   setShowGodmodeUnlock(false);
                   setAircraftClears({ fighter: false, bomber: false, stealth: false, interceptor: false, tank: false });
-                  alert('🔄 게임이 초기화되었습니다! (저장된 데이터는 유지됨)');
+                  alert('🔄 Game reset! (Saved data kept)');
                 }
               }}
               style={{
@@ -2629,7 +2526,7 @@ if (reverseTriggered) {
                 fontWeight: "bold"
               }}
             >
-              🔄 리셋
+              🔄 Reset
             </button>
             <button
               onClick={() => {
@@ -2647,7 +2544,7 @@ if (reverseTriggered) {
                 fontWeight: "bold"
               }}
             >
-              ← 모드 선택
+              ← Mode Select
             </button>
           </div>
           
@@ -2663,7 +2560,7 @@ if (reverseTriggered) {
               color: "#fff",
               textShadow: "0 0 10px rgba(255,255,255,0.8)"
             }}>
-              🎉 GAME CLEARED! 축하합니다! 🎉
+              🎉 GAME CLEARED! Congratulations! 🎉
             </div>
           )}
           {show100Clear && (
@@ -2683,10 +2580,10 @@ if (reverseTriggered) {
             }}>
               🎉🏆 LEVEL 100 CLEARED! 🏆🎉
               <div style={{ fontSize: "16px", marginTop: "10px" }}>
-                {selectedAircraft && selectedAircraft.name}로 100레벨 정복!
+                Level 100 conquered with {selectedAircraft && selectedAircraft.name}!
               </div>
               <div style={{ fontSize: "13px", marginTop: "8px", opacity: 0.9 }}>
-                축하합니다! 게임을 클리어했습니다!
+                Congratulations! You have cleared the game!
               </div>
               <button 
                 onClick={() => setShow100Clear(false)}
@@ -2702,7 +2599,7 @@ if (reverseTriggered) {
                   fontSize: "14px"
                 }}
               >
-                확인
+                OK
               </button>
             </div>
           )}
@@ -2722,7 +2619,7 @@ if (reverseTriggered) {
             }}>
               ⭐✨ PHOENIX X-99 UNLOCKED! ✨⭐
               <div style={{ fontSize: "12px", marginTop: "5px" }}>
-                궁극의 전투기를 획득했습니다!
+                The ultimate fighter has been obtained!
               </div>
               <button 
                 onClick={() => setShowPhoenixUnlock(false)}
@@ -2737,7 +2634,7 @@ if (reverseTriggered) {
                   fontWeight: "bold"
                 }}
               >
-                확인
+                OK
               </button>
             </div>
           )}
@@ -2758,10 +2655,10 @@ if (reverseTriggered) {
             }}>
               ⚡🌌 DIVINE DESTROYER UNLOCKED! 🌌⚡
               <div style={{ fontSize: "14px", marginTop: "8px", fontWeight: "bold" }}>
-                신의 영역에 도달했습니다!
+                You have reached the Divine Realm!
               </div>
               <div style={{ fontSize: "11px", marginTop: "5px", color: "#333" }}>
-                모든 비행기 마스터 달성 + 200레벨 정복
+                All aircraft mastered + Level 200 conquered
               </div>
               <button 
                 onClick={() => setShowGodmodeUnlock(false)}
@@ -2777,7 +2674,7 @@ if (reverseTriggered) {
                   fontSize: "14px"
                 }}
               >
-                확인
+                OK
               </button>
             </div>
           )}
@@ -2871,16 +2768,16 @@ if (reverseTriggered) {
           zIndex: 100
         }}>
           <h2 style={{ margin: "0 0 20px 0", color: "#fff" }}>
-            {isInfiniteMode ? "♾️ 무한 모드 레벨 선택" : "레벨 선택"}
+            {isInfiniteMode ? "♾️ Infinite Mode - Level Select" : "Level Select"}
           </h2>
           {!isInfiniteMode && phoenixUnlocked && (
             <div style={{ marginBottom: "10px", padding: "8px", background: "#ff0080", borderRadius: "5px", fontSize: "12px", fontWeight: "bold" }}>
-              ⭐ 피닉스 전용 스테이지 (101-200) 해금됨!
+              ⭐ Phoenix stages (101-200) unlocked!
             </div>
           )}
           {isInfiniteMode && (
             <div style={{ marginBottom: "10px", padding: "10px", background: "linear-gradient(90deg, #ffff00, #ff8800)", borderRadius: "5px", fontSize: "13px", fontWeight: "bold", color: "#000" }}>
-              ⚡ 무한 모드 - 신의 파괴자 전용 스테이지 ⚡
+              ⚡ Infinite Mode - Divine Destroyer Exclusive ⚡
             </div>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 5, marginBottom: 20, maxHeight: "400px", overflowY: "auto" }}>
@@ -2958,7 +2855,7 @@ if (reverseTriggered) {
               width: "100%"
             }}
           >
-            ← 모드 선택으로 돌아가기
+            ← Back to Mode Select
           </button>
         </div>
       ) : (
