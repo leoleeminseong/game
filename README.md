@@ -1,135 +1,225 @@
 # Pixel Shooting Game 🚀
 
-레트로 스타일의 종스크롤 슈팅 게임입니다. 6종의 고유한 비행기와 200레벨의 도전적인 스테이지를 즐겨보세요!
+Retro-style vertical scrolling shooting game with 7 unique aircraft, 200 challenging stages, and infinite mode!
 
-## 🎮 게임 특징
+## 🎮 Game Features
 
-### ✈️ 6종의 비행기
-각 비행기는 고유한 능력치와 특별 스킬을 가지고 있습니다:
+### 🎯 Game Modes
+
+#### 🎯 Normal Mode (Level 1-200)
+- **Level 1-100**: All aircraft available
+- **Level 101-200**: Phoenix X-99 / Divine Destroyer only
+- Challenge bosses and unlock new aircraft
+
+#### ♾️ Infinite Mode (Level 201+)
+- **Divine Destroyer exclusive** - Unlimited level progression
+- Progressive difficulty scaling
+- Compete for the highest score on the leaderboard
+- Starts from level 201
+
+### ✈️ 7 Aircraft Types
+Each aircraft has unique stats and special skills:
 
 1. **F-16 Fighter** 🔵
-   - 균형잡힌 올라운더 타입
-   - **스킬: Missile Barrage** - 5발의 미사일 발사 (쿨타임 8초)
-   - 생명력: 7 | 속도: 50 | 연사력: 3.3/s | 쉬드: 0 | 공격력: 1
+   - Balanced all-rounder
+   - **Skill: Missile Barrage** - Fires 5 missiles (Cooldown: 8s)
+   - Lives: 10 | Speed: 50 | Fire Rate: 3.3/s | Shield: 1 | Attack: 2
 
 2. **B-52 Bomber** 🟢
-   - 강력한 광역 공격 특화
-   - **스킬: Carpet Bomb** - 3개의 폭탄 투하 (범위 피해) (쿨타임 10초)
-   - 생명력: 10 | 속도: 30 | 연사력: 2.5/s | 쉬드: 0 | 공격력: 2
+   - Powerful area damage specialist
+   - **Skill: Carpet Bomb** - Drops 3 bombs (Area damage) (Cooldown: 10s)
+   - Lives: 12 | Speed: 40 | Fire Rate: 2.5/s | Shield: 2 | Attack: 3
 
-3. **SR-71 Stealth** ⚫
-   - 회피와 기동성에 특화
-   - **스킬: Stealth Mode** - 3초간 무적 + 속도 2배 (쿨타임 12초)
-   - 생명력: 5 | 속도: 70 | 연사력: 4/s | 쉬드: 0 | 공격력: 1
+3. **Stealth Fighter** 🟣
+   - High speed, Low HP
+   - **Skill: Stealth Mode** - Invincible + Speed boost for 3s (Cooldown: 12s)
+   - Lives: 7 | Speed: 70 | Fire Rate: 5/s | Shield: 0 | Attack: 1
 
-4. **F-22 Interceptor** 🔴
-   - 관통 공격의 달인
-   - **스킬: Laser Beam** - 관통 레이저 발사 (0.75초 지속, 플레이어 추적) (쿨타임 7초)
-   - 생명력: 8 | 속도: 60 | 연사력: 4/s | 쉬드: 0 | 공격력: 1
+4. **Interceptor** �
+   - Ultra rapid fire specialist
+   - **Skill: Laser Beam** - Piercing laser (0.75s duration) (Cooldown: 7s)
+   - Lives: 8 | Speed: 60 | Fire Rate: 6.7/s | Shield: 0 | Attack: 1
 
-5. **A-10 Tank** 🟡
-   - 높은 내구력과 방어력
-   - **스킬: Shield Burst** - 360도 전방위 총알 발사 (쿨타임 9초)
-   - 생명력: 12 | 속도: 40 | 연사력: 2.5/s | 쉬드: 2 | 공격력: 1
+5. **Flying Fortress** �
+   - Maximum defense, Slow attack
+   - **Skill: Shield Burst** - 360° omnidirectional bullets (Cooldown: 9s)
+   - Lives: 15 | Speed: 30 | Fire Rate: 2.5/s | Shield: 3 | Attack: 1
 
 6. **⭐ PHOENIX X-99 ⭐** 💗
-   - 궁극의 전투기 (F-16으로 100레벨 클리어 시 해금)
-   - **스킬: Phoenix Storm** - 전방위 섬멸 공격 (미사일 10발 + 360도 에너지탄 24발 + 3개의 관통 레이저) (쿨타임 15초)
-   - 생명력: 20 | 속도: 80 | 연사력: 10/s | 쉬드: 5 | 공격력: 3
-   - **특권: 101-200 피닉스 전용 스테이지 진행 가능**
+   - Ultimate Fighter (Unlock: Clear level 100 with F-16 Fighter)
+   - **Skill: Phoenix Storm** - Omnidirectional annihilation (10 missiles + 24 energy shots + 3 lasers) (Cooldown: 15s)
+   - Lives: 20 | Speed: 80 | Fire Rate: 10/s | Shield: 5 | Attack: 3
+   - **Special: Can progress to level 200**
 
-### 🎯 스테이지 시스템
+7. **⚡ DIVINE DESTROYER ⚡** 🌟
+   - Divine Realm - Infinite Mode Only
+   - **Skill: Divine Annihilation** - Absolute power + Unlimited levels
+   - **Unlock: Clear level 200 + Clear level 100 with all aircraft**
+   - Lives: 50 | Speed: 120 | Fire Rate: 20/s | Shield: 15 | Attack: 10
+   - **Special: Access to Infinite Mode (201+)**
 
-#### 일반 스테이지 (1-100레벨)
-- 모든 비행기로 플레이 가능
-- 10레벨마다 보스 등장 (10종의 고유 보스)
-- 5레벨마다 업그레이드 선택 (보스 레벨 제외)
-- 최대 10마리의 적 동시 출현
-- 100레벨 최종 보스 체력: 230
+### 🎯 Stage System
 
-#### 피닉스 전용 스테이지 (101-200레벨)
-- **PHOENIX X-99 전용** (다른 비행기는 100레벨에서 종료)
-- 극한의 난이도: 적 체력 10배+, 적 수 2배 (최대 20마리)
-- 일반 적 체력: 16.2 → 135 (200레벨 기준)
-- 보스 체력: 308 → 1,020 (190레벨까지)
-- **200레벨 최종 보스: 체력 2,000** 👑
-- 레벨 선택 UI에서 분홍색으로 표시됨
+#### Normal Stages (Level 1-100)
+- All aircraft available
+- Boss every 10 levels (10 unique bosses)
+- Upgrades every 5 levels (except boss levels)
+- Max 10 enemies on screen
+- Level 100 final boss HP: 690
 
-### 🎁 업그레이드 시스템
+#### Phoenix Exclusive Stages (Level 101-200)
+- **PHOENIX X-99 / Divine Destroyer only** (Other aircraft end at level 100)
+- Extreme difficulty scaling
+- Boss HP: 900 → 4,560 (level 190)
+- **Level 200 Final Boss: 6,000 HP + 3 Phases (21,000 HP total)** 👑
+  - Phase 1: 6,000 HP - Red-purple-blue gradient with lightning
+  - Phase 2: 6,000 HP - 48-direction burst + wave attacks
+  - Phase 3: 9,000 HP - 64-direction spiral + 8-direction lasers
 
-#### 일반 업그레이드
-- 🚀 **Move Speed +10**: 이동 속도 증가
-- 🔥 **Fire Rate Up**: 연사 속도 증가 (쿨타임 -0.05초)
-- 💖 **+1 Life**: 생명력 1 증가
-- 💥 **+1 Damage**: 공격력 1 증가
-- ⚡ **Skill Cooldown -1s**: 스킬 쿨타임 1초 감소 (최소 2초)
+#### Infinite Mode (Level 201+)
+- **Divine Destroyer exclusive**
+- Progressive difficulty: Enemies start weak and scale infinitely
+- Enemy HP: 1 → scales by level
+- Max 25 enemies on screen
+- Boss HP increases continuously
+- No level cap - compete for highest score!
 
-#### 레어 업그레이드 (10% 확률)
-- ⚡ **Ultra Speed +30**: 대폭 속도 증가
-- 💥 **Ultra Fire Rate**: 연사 속도 대폭 증가 (쿨타임 -0.15초)
-- 🛡️ **Add 3 Shield**: 쉴드 3 추가
+### 🎁 Upgrade System
 
-#### 보스 스킬 업그레이드
-- 🎯 **Triple Shot**: 3연발 → 5연발 (펜타샷)으로 업그레이드 가능
-- ⚡ **Super Fast Fire**: 초고속 연사
-- 💫 **Teleport**: Shift 키로 순간이동
-- 💖 **Auto Heal**: 자동 체력 회복
-- ⚡🌩️ **Lightning**: 자동 번개 공격
-- 🌀⏰ **Time Warp**: 시간 왜곡 (자동)
-- ⭐💫 **Starfall**: 별똥별 낙하 (자동)
-- 🌪️💥 **Chaos**: 혼돈의 공격 (자동)
-- ✨ **Ultimate Power**: 궁극의 힘
+#### Standard Upgrades
+- 🚀 **Move Speed +10**: Increase movement speed
+- 🔥 **Fire Rate Up**: Increase fire rate (Cooldown -0.05s)
+- 💖 **+1 Life**: Increase lives by 1
+- 💥 **+1 Damage**: Increase attack power by 1
+- ⚡ **Skill Cooldown -1s**: Reduce skill cooldown (Minimum 2s)
+- ↖️↗️ **Diagonal Shot**: Stacking diagonal shots (Level-based)
 
-*모든 업그레이드는 중첩 가능하며, 레벨별로 효과가 누적됩니다!*
+#### Rare Upgrades (10% chance)
+- ⚡ **Ultra Speed +30**: Massive speed boost
+- 💥 **Ultra Fire Rate**: Massive fire rate boost (Cooldown -0.15s)
+- 🛡️ **Add 3 Shield**: Add 3 shields
+- 🛡️✨ **Add 5 Shield**: Add 5 shields (Super rare)
+- 💢💥 **+3 Damage**: Massive damage boost (Mega rare)
 
-### 💾 저장 시스템
-- **💾 저장**: 현재 게임 클리어 상태와 피닉스 해금 저장
-- **📂 불러오기**: 저장된 데이터 복원
-- **🔄 리셋**: 현재 진행 초기화 (저장 데이터는 유지)
+#### Boss Skill Upgrades
+- 🎯 **Triple Shot**: 3-shot → 5-shot (Pentashot) → 7-shot stacking
+- ⚡ **Super Fast Fire**: Ultra-fast fire rate
+- 💫 **Teleport**: Instant teleport with Shift key
+- 💖 **Auto Heal**: Automatic HP regeneration
+- ⚡🌩️ **Lightning**: Automatic lightning attacks
+- 🌀⏰ **Time Warp**: Time distortion (Auto)
+- ⭐💫 **Starfall**: Meteor shower (Auto)
+- 🌪️💥 **Chaos**: Chaos attacks (Auto)
+- ✨ **Ultimate Power**: Ultimate form
 
-### 🎮 게임 진행
-- 적이 화면 아래까지 내려오면 해당 적 수만큼 생명력 감소
-- 보스는 고유한 패턴과 스킬을 사용
-- 쉴드가 있으면 피격 시 쉴드가 먼저 소모됨
-- 레벨 선택으로 원하는 스테이지부터 시작 가능
+*All upgrades are stackable and effects accumulate!*
 
-## 🕹️ 조작법
+### � Player System
+- **Enter Your Name**: Set your player name at first launch
+- Names are saved in localStorage and persist across sessions
+- Display your name in-game and on the leaderboard
+- Change name anytime from main menu
 
-### 기본 조작
-- **방향키 (←↑↓→)**: 비행기 이동
-- **스페이스바**: 총알 발사
-- **W 키**: 비행기 고유 스킬 발동 (쿨타임 존재)
-- **Shift 키**: 텔레포트 (업그레이드 획득 시)
+### 🏆 Leaderboard System
+- **Automatic Recording**: Records are saved when game over or level complete
+- **Top 50 Records**: Stores highest 50 records by level
+- **Rankings**: 🥇 Gold, 🥈 Silver, 🥉 Bronze medals for top 3
+- **Detailed Stats**: Player name, level reached, aircraft used, mode, date
+- **Highlight**: Your records are highlighted in the leaderboard
+- **Persistent**: All records saved in localStorage
 
-### 게임 조작
-- **Enter**: 게임 오버 시 재시작
-- **Pause/Resume**: 게임 일시정지/재개
-- **Level Select**: 레벨 선택 화면으로 이동
-- **Change Aircraft**: 비행기 선택 화면으로 이동
+### �💾 Save System
+- **💾 Save**: Save current clear status and unlocks
+- **📂 Load**: Restore saved data
+- **🔄 Reset**: Reset current progress (saved data kept)
 
-## 🏆 도전 과제
+### 🎮 Gameplay
+- Enemies reaching the bottom reduce lives
+- Bosses use unique patterns and skills
+- Shields absorb damage before lives are lost
+- Level select allows starting from any stage
+- Progressive difficulty in infinite mode
 
-1. **피닉스 해금**: F-16 Fighter로 100레벨 클리어
-2. **진정한 클리어**: 피닉스 X-99로 200레벨 완파
-3. **업그레이드 마스터**: 모든 업그레이드 중첩 획득
-4. **보스 러시**: 10종의 보스 모두 격파
+## 🕹️ Controls
 
-## 🎨 게임 정보
+### Basic Controls
+- **Arrow Keys (←↑↓→)**: Move aircraft
+- **Space Bar**: Fire bullets
+- **W Key**: Activate special skill (has cooldown)
+- **Shift Key**: Teleport (when upgrade acquired)
 
-- **장르**: 종스크롤 슈팅 게임
-- **그래픽**: 픽셀 아트 (320x480)
-- **난이도**: 초급 → 극악 (200레벨)
-- **총 스테이지**: 200레벨
-- **총 보스**: 10종 (순환 반복)
-- **플레이 시간**: 무제한
+### Game Controls
+- **Enter**: Restart after game over
+- **Pause/Resume**: Pause/resume game
+- **Level Select**: Go to level selection screen
+- **Mode Select**: Return to mode selection
+- **Main Menu**: Return to main menu
 
-## 🚀 시작하기
+## 🏆 Challenges & Achievements
 
-1. `index.html` 파일을 브라우저로 실행
-2. 비행기 선택
-3. 시작 레벨 선택
-4. 게임 시작!
+1. **Unlock Phoenix**: Clear level 100 with F-16 Fighter
+2. **Master All Aircraft**: Clear level 100 with all 5 basic aircraft
+3. **Divine Unlock**: Clear level 200 + Clear level 100 with all aircraft
+4. **Level 200 Boss**: Defeat the 3-phase final boss (21,000 HP total)
+5. **Infinite Master**: Reach the highest level in infinite mode
+6. **Upgrade Master**: Stack all possible upgrades
+7. **Boss Rush**: Defeat all 10 boss types
+8. **Leaderboard King**: Claim the #1 spot on the leaderboard
+
+## 🎨 Game Information
+
+- **Genre**: Vertical Scrolling Shooter
+- **Graphics**: Pixel Art (320x480)
+- **Difficulty**: Beginner → Extreme → Infinite
+- **Total Stages**: 200 levels + Infinite Mode
+- **Total Bosses**: 10 types (repeating cycle)
+- **Game Modes**: Normal Mode, Infinite Mode
+- **Languages**: English
+- **Play Time**: Unlimited
+
+## 🆕 Latest Updates
+
+### Version 2.0 - Major Update
+- ✨ **Divine Destroyer Aircraft**: New ultimate aircraft with infinite progression
+- ♾️ **Infinite Mode**: Endless challenge beyond level 200
+- 🏆 **Leaderboard System**: Compete for highest scores
+- 👤 **Player Name System**: Personalize your gaming experience
+- 🎯 **Mode Selection**: Choose between Normal and Infinite modes
+- 📊 **Progressive Difficulty**: Dynamic difficulty scaling in infinite mode
+
+### Boss Enhancements
+- **Level 200 Boss**: 3-phase system (21,000 HP total)
+  - Phase 1: Red-purple-blue gradient with 8 lightning effects
+  - Phase 2: Heal to 6,000 HP, 48-direction burst + wave attacks
+  - Phase 3: Heal to 9,000 HP, 64-direction spiral + 8-direction lasers
+- **Boss HP Rebalance**: 3x multiplier across all bosses
+- **Infinite Mode Bosses**: Continuously scaling HP
+
+### Gameplay Improvements
+- **Diagonal Shot Stacking**: Level-based bullet count (3, 5, 7...)
+- **Enhanced Upgrade System**: More diverse upgrade options
+- **Balanced Difficulty**: Progressive scaling for infinite mode
+- **Visual Effects**: Enhanced boss phase transitions
+
+## 🚀 Getting Started
+
+1. Open `index.html` in a web browser
+2. Enter your player name
+3. Select game mode (Normal / Infinite)
+4. Choose your aircraft
+5. Select starting level
+6. Start your mission!
+
+## 💡 Tips
+
+- **Upgrade Strategy**: Focus on fire rate and damage for maximum DPS
+- **Shield Management**: Use shields wisely, they're your first line of defense
+- **Skill Timing**: Save skills for boss battles and critical moments
+- **Diagonal Shots**: Stack diagonal shot upgrades for massive firepower
+- **Infinite Mode**: Start with Divine Destroyer for the best chance
 
 ---
 
 **Good Luck, Pilot! 🛩️✨**
+
+*May you reach the top of the leaderboard and conquer the infinite skies!*
