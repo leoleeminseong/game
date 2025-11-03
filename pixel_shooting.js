@@ -312,7 +312,7 @@ function PixelClassicShooter() {
   }
 
   // ----- upgrades pools -----
-  const allUpgrades = ["speed", "fire", "life", "attackPower"];
+  const allUpgrades = ["speed", "fire", "life", "attackPower", "skillCooldown"];
   const rareUpgrades = ["ultraSpeed", "ultraFire", "shield"];
 
   function applyUpgrade(type) {
@@ -330,6 +330,13 @@ function PixelClassicShooter() {
     }
 
     if (type === "attackPower") { setPlayerStats((p) => ({ ...p, attackPower: p.attackPower + 1 }));
+    }
+    if (type === "skillCooldown") {
+      setPlayerStats((p) => {
+        const nv = { ...p, skillCooldownReduction: (p.skillCooldownReduction || 0) + 1 };
+        playerStatsRef.current = nv;
+        return nv;
+      });
     }
     if (type === "ultraSpeed") {
       setPlayerStats((p) => { const nv = { ...p, moveSpeed: p.moveSpeed + 30 }; playerStatsRef.current = nv; return nv; });
@@ -865,7 +872,9 @@ function PixelClassicShooter() {
               missile: true
             });
           }
-          playerStatsRef.current.skillCooldown = 8;
+          const baseCooldown = 8;
+          const reduction = playerStatsRef.current.skillCooldownReduction || 0;
+          playerStatsRef.current.skillCooldown = Math.max(2, baseCooldown - reduction);
         } 
         else if (aircraftId === "bomber") {
           // Carpet Bomb: 광역 폭격 (전방에 폭탄 투하)
@@ -881,7 +890,9 @@ function PixelClassicShooter() {
               bombRadius: 25
             });
           }
-          playerStatsRef.current.skillCooldown = 10;
+          const baseCooldown = 10;
+          const reduction = playerStatsRef.current.skillCooldownReduction || 0;
+          playerStatsRef.current.skillCooldown = Math.max(2, baseCooldown - reduction);
         }
         else if (aircraftId === "stealth") {
           // Stealth Mode: 3초간 무적 + 고속이동
@@ -890,7 +901,9 @@ function PixelClassicShooter() {
           playerStatsRef.current.stealthDuration = 3;
           playerStatsRef.current.originalSpeed = playerStatsRef.current.moveSpeed;
           playerStatsRef.current.moveSpeed = playerStatsRef.current.moveSpeed * 2;
-          playerStatsRef.current.skillCooldown = 12;
+          const baseCooldown = 12;
+          const reduction = playerStatsRef.current.skillCooldownReduction || 0;
+          playerStatsRef.current.skillCooldown = Math.max(2, baseCooldown - reduction);
         }
         else if (aircraftId === "interceptor") {
           // Laser Beam: 관통 레이저
@@ -905,7 +918,9 @@ function PixelClassicShooter() {
             laserDuration: 0.75,
             followPlayer: true  // 플레이어를 따라다님
           });
-          playerStatsRef.current.skillCooldown = 7;
+          const baseCooldown = 7;
+          const reduction = playerStatsRef.current.skillCooldownReduction || 0;
+          playerStatsRef.current.skillCooldown = Math.max(2, baseCooldown - reduction);
         }
         else if (aircraftId === "tank") {
           // Shield Burst: 전방위 보호막 발사
@@ -922,7 +937,9 @@ function PixelClassicShooter() {
               shield: true
             });
           }
-          playerStatsRef.current.skillCooldown = 9;
+          const baseCooldown = 9;
+          const reduction = playerStatsRef.current.skillCooldownReduction || 0;
+          playerStatsRef.current.skillCooldown = Math.max(2, baseCooldown - reduction);
         }
         else if (aircraftId === "phoenix") {
           // Phoenix Storm: 궁극의 전방위 섬멸 공격
@@ -972,7 +989,9 @@ function PixelClassicShooter() {
             });
           }
           
-          playerStatsRef.current.skillCooldown = 15;
+          const baseCooldown = 15;
+          const reduction = playerStatsRef.current.skillCooldownReduction || 0;
+          playerStatsRef.current.skillCooldown = Math.max(2, baseCooldown - reduction);
         }
       }
       
@@ -2279,6 +2298,7 @@ if (reverseTriggered) {
                 {u === "speed" && "🚀 Move Speed +10"}
                 {u === "fire" && "🔥 Fire Rate Up"}
                 {u === "life" && "💖 +1 Life"}
+                {u === "skillCooldown" && "⚡ Skill Cooldown -1s"}
                 {u === "ultraSpeed" && "⚡ Ultra Speed +30"}
                 {u === "ultraFire" && "💥 Ultra Fire Rate"}
                 {u === "shield" && "🛡️ Add 3 Shield"}
