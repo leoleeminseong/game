@@ -681,7 +681,6 @@ function PixelClassicShooter() {
     setGameOver(false); gameOverRef.current = false;
     setRunning(false); runningRef.current = false;
     setShowUpgrade(false); showUpgradeRef.current = false;
-    setShowLevelSelect(false);
     setShowAircraftSelect(true);
     setSelectedAircraft(null); selectedAircraftRef.current = null;
     setLevel(1); levelRef.current = 1;
