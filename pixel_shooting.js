@@ -260,22 +260,22 @@ function PixelClassicShooter() {
       const def = bossDefinitions[idx];
       const bossHeight = 18; // 보스의 높이
       
-      // 보스 체력 설정
+      // 보스 체력 설정 (전체적으로 3배 증가)
       let bossHp;
       if (levelNum === 100) {
-        bossHp = 230;
+        bossHp = 690; // 230 -> 460 -> 690
       } else if (levelNum === 200) {
         // 200레벨 최종 보스는 극강의 체력
-        bossHp = 2000;
+        bossHp = 6000; // 2000 -> 4000 -> 6000
       } else if (isInfiniteModeLevel) {
-        // 무한 모드 보스는 레벨에 따라 체력 증가 (210: 290, 220: 470...)
-        bossHp = 200 + (levelNum - 200) * 9;
+        // 무한 모드 보스는 레벨에 따라 체력 증가 (210: 870, 220: 1410...)
+        bossHp = 600 + (levelNum - 200) * 27; // 3배 증가
       } else if (isPhoenixStage) {
         // 피닉스 스테이지 보스 (101-190)
-        bossHp = 300 + (levelNum - 100) * 8;
+        bossHp = 900 + (levelNum - 100) * 24; // 3배 증가
       } else {
         // 일반 모드 보스 (10-90)
-        bossHp = 30 + levelNum * 2;
+        bossHp = 90 + levelNum * 6; // 3배 증가
       }
       
       enemies.push({
@@ -394,7 +394,7 @@ function PixelClassicShooter() {
       setPlayerStats((p) => { const nv = { ...p, moveSpeed: p.moveSpeed + 10 }; playerStatsRef.current = nv; return nv; });
     }
     if (type === "fire") {
-      setPlayerStats((p) => { const nv = { ...p, shootCooldown: Math.max(0.05, p.shootCooldown - 0.05) }; playerStatsRef.current = nv; return nv; });
+      setPlayerStats((p) => { const nv = { ...p, shootCooldown: Math.max(0.03, p.shootCooldown - 0.05) }; playerStatsRef.current = nv; return nv; });
     }
     if (type === "life") {
       setLives((l) => { const nv = l + 1; livesRef.current = nv; return nv; });
@@ -435,16 +435,11 @@ function PixelClassicShooter() {
   
     }
     if (type === "diagonalShot") {
-      // 대각선 공격 모드 활성화 (중첩 가능)
+      // 대각선 공격 모드 활성화 (중첩 가능 - 레벨별 발사 수 증가)
       if (!playerStatsRef.current.diagonalShot) {
-        playerStatsRef.current.diagonalShot = true;
+        playerStatsRef.current.diagonalShot = 1; // 첫 번째: 3발 (중앙 + 좌우 대각선)
       } else {
-        // 이미 활성화되어 있으면 공격력 증가
-        setPlayerStats((p) => {
-          const nv = { ...p, attackPower: (p.attackPower || 1) + 1 };
-          playerStatsRef.current = nv;
-          return nv;
-        });
+        playerStatsRef.current.diagonalShot += 1; // 중첩: 레벨 증가
       }
     }
     
@@ -1158,24 +1153,35 @@ function PixelClassicShooter() {
         // 기본 발사
         st.bullets.push({ x: p.x + p.w / 2 - 1, y: p.y - 4, w: 2, h: 4, dy: -120 });
 
-        // 대각선 공격이 활성화된 경우 대각선으로 발사
+        // 대각선 공격이 활성화된 경우 레벨에 따라 발사 수 증가
         if (playerStatsRef.current.diagonalShot) {
-          st.bullets.push({ 
-            x: p.x + p.w / 2 - 1, 
-            y: p.y - 4, 
-            w: 2, 
-            h: 4, 
-            dy: -100, 
-            dx: -60  // 왼쪽 대각선
-          });
-          st.bullets.push({ 
-            x: p.x + p.w / 2 - 1, 
-            y: p.y - 4, 
-            w: 2, 
-            h: 4, 
-            dy: -100, 
-            dx: 60   // 오른쪽 대각선
-          });
+          const diagLevel = playerStatsRef.current.diagonalShot;
+          
+          // 레벨 1: 좌우 대각선 2발 (총 3발)
+          // 레벨 2: 좌우 대각선 각 2발씩 (총 5발)
+          // 레벨 3: 좌우 대각선 각 3발씩 (총 7발)
+          const shotsPerSide = diagLevel;
+          
+          for (let i = 1; i <= shotsPerSide; i++) {
+            // 왼쪽 대각선들
+            st.bullets.push({ 
+              x: p.x + p.w / 2 - 1, 
+              y: p.y - 4, 
+              w: 2, 
+              h: 4, 
+              dy: -100, 
+              dx: -60 * i / shotsPerSide  // 각도 분산
+            });
+            // 오른쪽 대각선들
+            st.bullets.push({ 
+              x: p.x + p.w / 2 - 1, 
+              y: p.y - 4, 
+              w: 2, 
+              h: 4, 
+              dy: -100, 
+              dx: 60 * i / shotsPerSide   // 각도 분산
+            });
+          }
         }
 
         // 보스에서 획득한 tripleShot 스킬
