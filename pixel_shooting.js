@@ -143,6 +143,11 @@ function PixelClassicShooter() {
   const [showLevelSelect, setShowLevelSelect] = useState(false);
   const [showAircraftSelect, setShowAircraftSelect] = useState(false);
   const [showMainMenu, setShowMainMenu] = useState(true);
+  const [showNameInput, setShowNameInput] = useState(false);
+  const [playerName, setPlayerName] = useState(() => {
+    return localStorage.getItem('playerName') || '';
+  });
+  const [tempName, setTempName] = useState('');
   const [showModeSelect, setShowModeSelect] = useState(false);
   const [selectedAircraft, setSelectedAircraft] = useState(null);
   const [isInfiniteMode, setIsInfiniteMode] = useState(false);
@@ -2277,8 +2282,14 @@ if (reverseTriggered) {
           <div style={{ display: "flex", flexDirection: "column", gap: "15px", minWidth: "250px" }}>
             <button
               onClick={() => {
-                setShowMainMenu(false);
-                setShowModeSelect(true);
+                if (!playerName) {
+                  setShowMainMenu(false);
+                  setShowNameInput(true);
+                  setTempName('');
+                } else {
+                  setShowMainMenu(false);
+                  setShowModeSelect(true);
+                }
               }}
               style={{
                 padding: "15px 30px",
@@ -2307,6 +2318,142 @@ if (reverseTriggered) {
           <div style={{ marginTop: "30px", fontSize: "12px", color: "#aaa" }}>
             <div>Controls: Arrow Keys - Move | Space - Shoot | W - Skill</div>
             <div style={{ marginTop: "5px" }}>Version 1.0 | Made with ❤️</div>
+          </div>
+          
+          {playerName && (
+            <div style={{ marginTop: "20px", fontSize: "14px", color: "#aaa" }}>
+              👤 Player: <span style={{ color: "#0ff", fontWeight: "bold" }}>{playerName}</span>
+              <button
+                onClick={() => {
+                  setShowNameInput(true);
+                  setTempName(playerName);
+                }}
+                style={{
+                  marginLeft: "10px",
+                  padding: "3px 8px",
+                  background: "#555",
+                  color: "#fff",
+                  border: "1px solid #777",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontSize: "11px"
+                }}
+              >
+                Change
+              </button>
+            </div>
+          )}
+        </div>
+      ) : showNameInput ? (
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
+          padding: "40px 50px",
+          borderRadius: "20px",
+          border: "3px solid #0f3460",
+          zIndex: 100,
+          boxShadow: "0 0 40px rgba(15, 52, 96, 0.8)",
+          minWidth: "350px"
+        }}>
+          <h2 style={{ 
+            margin: "0 0 20px 0", 
+            color: "#fff", 
+            fontSize: "24px",
+            textAlign: "center"
+          }}>
+            ✨ Enter Your Name ✨
+          </h2>
+          
+          <div style={{ marginBottom: "20px" }}>
+            <input
+              type="text"
+              value={tempName}
+              onChange={(e) => setTempName(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && tempName.trim()) {
+                  const name = tempName.trim();
+                  setPlayerName(name);
+                  localStorage.setItem('playerName', name);
+                  setShowNameInput(false);
+                  if (!showModeSelect && !showAircraftSelect) {
+                    setShowModeSelect(true);
+                  }
+                }
+              }}
+              placeholder="Enter your name..."
+              maxLength={20}
+              autoFocus
+              style={{
+                width: "100%",
+                padding: "12px 15px",
+                fontSize: "16px",
+                background: "#0f3460",
+                color: "#fff",
+                border: "2px solid #16213e",
+                borderRadius: "8px",
+                outline: "none",
+                boxSizing: "border-box"
+              }}
+            />
+            <div style={{ fontSize: "11px", color: "#aaa", marginTop: "5px" }}>
+              Max 20 characters
+            </div>
+          </div>
+          
+          <div style={{ display: "flex", gap: "10px", justifyContent: "center" }}>
+            <button
+              onClick={() => {
+                if (tempName.trim()) {
+                  const name = tempName.trim();
+                  setPlayerName(name);
+                  localStorage.setItem('playerName', name);
+                  setShowNameInput(false);
+                  if (!showModeSelect && !showAircraftSelect) {
+                    setShowModeSelect(true);
+                  }
+                }
+              }}
+              disabled={!tempName.trim()}
+              style={{
+                padding: "12px 30px",
+                background: tempName.trim() ? "linear-gradient(135deg, #0f3460 0%, #16213e 100%)" : "#333",
+                color: tempName.trim() ? "#fff" : "#666",
+                border: "2px solid " + (tempName.trim() ? "#0f3460" : "#444"),
+                borderRadius: "10px",
+                cursor: tempName.trim() ? "pointer" : "not-allowed",
+                fontSize: "16px",
+                fontWeight: "bold",
+                transition: "all 0.3s"
+              }}
+            >
+              ✓ Confirm
+            </button>
+            
+            {playerName && (
+              <button
+                onClick={() => {
+                  setShowNameInput(false);
+                  if (!showModeSelect && !showAircraftSelect) {
+                    setShowMainMenu(true);
+                  }
+                }}
+                style={{
+                  padding: "12px 30px",
+                  background: "#555",
+                  color: "#fff",
+                  border: "2px solid #666",
+                  borderRadius: "10px",
+                  cursor: "pointer",
+                  fontSize: "16px",
+                  fontWeight: "bold"
+                }}
+              >
+                Cancel
+              </button>
+            )}
           </div>
         </div>
       ) : showModeSelect ? (
@@ -2861,6 +3008,11 @@ if (reverseTriggered) {
       ) : (
         <div style={{ marginTop: 8 }}>
           <div style={{ fontSize: 13 }}>
+            {playerName && (
+              <span style={{ color: "#0ff", fontWeight: "bold", marginRight: 10 }}>
+                👤 {playerName}
+              </span>
+            )}
             Lives: {lives} &nbsp;•&nbsp; Level: {level}
             {selectedAircraft && selectedAircraft.id === 'godmode' && level > 200 && (
               <span style={{ marginLeft: 10, color: "#ffff00", fontWeight: "bold", textShadow: "0 0 5px #ff8800" }}>
