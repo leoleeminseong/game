@@ -84,9 +84,9 @@ const aircraftTypes = [
   {
     id: "phoenix",
     name: "PHOENIX X-99",
-    description: "⭐ 궁극의 전투기 ⭐ (101-150 전용)",
+    description: "⭐ 궁극의 전투기 ⭐ (101-200 전용)",
     skillName: "Phoenix Storm",
-    skillDesc: "전방위 섬멸 공격 + 150레벨까지 진행 가능",
+    skillDesc: "전방위 섬멸 공격 + 200레벨까지 진행 가능",
     color: "#ff0080",
     locked: true,
     unlockCondition: "F-16 Fighter로 100레벨 클리어",
@@ -214,8 +214,11 @@ function PixelClassicShooter() {
       let bossHp;
       if (levelNum === 100) {
         bossHp = 230;
+      } else if (levelNum === 200) {
+        // 200레벨 최종 보스는 극강의 체력
+        bossHp = 2000;
       } else if (isPhoenixStage) {
-        bossHp = 300 + (levelNum - 100) * 5; // 101레벨: 305, 150레벨: 550
+        bossHp = 300 + (levelNum - 100) * 8; // 101레벨: 308, 190레벨: 1020
       } else {
         bossHp = 30 + levelNum * 2;
       }
@@ -239,7 +242,7 @@ function PixelClassicShooter() {
       
       // 피닉스 스테이지는 적 체력과 수가 대폭 증가
       const baseEnemyHP = isPhoenixStage 
-        ? 15 + (levelNum - 100) * 0.8  // 101레벨: 15.8, 150레벨: 55
+        ? 15 + (levelNum - 100) * 1.2  // 101레벨: 16.2, 200레벨: 135
         : 1 + (levelNum - 1) * 0.25;
       const enemyHP = baseEnemyHP;
       const maxEnemies = isPhoenixStage ? 20 : 10; // 피닉스 스테이지는 적이 2배
@@ -1851,8 +1854,8 @@ if (reverseTriggered) {
             return;
           }
           
-          // 피닉스 X-99인 경우 150레벨까지 진행 가능
-          if (nextLevel > 150) {
+          // 피닉스 X-99인 경우 200레벨까지 진행 가능
+          if (nextLevel > 200) {
             // 피닉스 전용 스테이지 완전 클리어!
             setGameOver(true); gameOverRef.current = true;
             setRunning(false); runningRef.current = false;
@@ -2034,15 +2037,15 @@ if (reverseTriggered) {
             </button>
             <button
               onClick={() => {
-                if (confirm('⚠️ 모든 진행 상황이 초기화됩니다. 계속하시겠습니까?')) {
+                if (confirm('⚠️ 현재 진행 상황이 초기화됩니다. (저장된 데이터는 유지됨) 계속하시겠습니까?')) {
                   localStorage.removeItem('pixelShooterCleared');
                   localStorage.removeItem('phoenixUnlocked');
                   localStorage.removeItem('phoenixStageCleared');
-                  localStorage.removeItem('pixelShooterSave');
+                  // localStorage.removeItem('pixelShooterSave'); // 저장된 데이터는 유지
                   setGameCleared(false);
                   setPhoenixUnlocked(false);
                   setShowPhoenixUnlock(false);
-                  alert('🔄 게임이 초기화되었습니다!');
+                  alert('🔄 게임이 초기화되었습니다! (저장된 데이터는 유지됨)');
                 }
               }}
               style={{
@@ -2199,14 +2202,15 @@ if (reverseTriggered) {
           <h2 style={{ margin: "0 0 20px 0", color: "#fff" }}>레벨 선택</h2>
           {phoenixUnlocked && (
             <div style={{ marginBottom: "10px", padding: "8px", background: "#ff0080", borderRadius: "5px", fontSize: "12px", fontWeight: "bold" }}>
-              ⭐ 피닉스 전용 스테이지 (101-150) 해금됨!
+              ⭐ 피닉스 전용 스테이지 (101-200) 해금됨!
             </div>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 5, marginBottom: 20, maxHeight: "400px", overflowY: "auto" }}>
-            {[...Array(150)].map((_, i) => {
+            {[...Array(200)].map((_, i) => {
               const levelNum = i + 1;
               const isPhoenixStage = levelNum > 100;
               const isLocked = isPhoenixStage && !phoenixUnlocked;
+              const isFinalBoss = levelNum === 200;
               
               return (
                 <button
@@ -2214,18 +2218,19 @@ if (reverseTriggered) {
                   onClick={() => !isLocked && startGameAtLevel(levelNum)}
                   style={{
                     padding: "8px",
-                    background: isPhoenixStage ? (isLocked ? "#333" : "#ff0080") : "#333",
+                    background: isFinalBoss ? "#ff0000" : (isPhoenixStage ? (isLocked ? "#333" : "#ff0080") : "#333"),
                     color: isLocked ? "#666" : "#fff",
-                    border: isPhoenixStage ? "1px solid #ff0080" : "1px solid #666",
+                    border: isFinalBoss ? "2px solid #ffff00" : (isPhoenixStage ? "1px solid #ff0080" : "1px solid #666"),
                     borderRadius: "4px",
                     cursor: isLocked ? "not-allowed" : "pointer",
                     fontSize: "11px",
                     fontWeight: isPhoenixStage ? "bold" : "normal",
-                    opacity: isLocked ? 0.3 : 1
+                    opacity: isLocked ? 0.3 : 1,
+                    boxShadow: isFinalBoss && !isLocked ? "0 0 10px #ff0000" : "none"
                   }}
                   disabled={isLocked}
                 >
-                  {isLocked ? "🔒" : levelNum}
+                  {isLocked ? "🔒" : (isFinalBoss ? "👑" : levelNum)}
                 </button>
               );
             })}
