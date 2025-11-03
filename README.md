@@ -221,5 +221,3 @@ Each aircraft has unique stats and special skills:
 ---
 
 **Good Luck, Pilot! 🛩️✨**
-
-*May you reach the top of the leaderboard and conquer the infinite skies!*

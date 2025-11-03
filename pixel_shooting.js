@@ -159,6 +159,16 @@ function PixelClassicShooter() {
     return saved ? JSON.parse(saved) : [];
   });
   
+  // 리더보드 화면 열 때마다 데이터 새로고침
+  useEffect(() => {
+    if (showLeaderboard) {
+      const saved = localStorage.getItem('leaderboard');
+      if (saved) {
+        setLeaderboardData(JSON.parse(saved));
+      }
+    }
+  }, [showLeaderboard]);
+  
   // 번역 - 기본 언어: 영어
   const lang = 'en';
   
@@ -183,6 +193,7 @@ function PixelClassicShooter() {
   // 리더보드에 기록 추가
   const addToLeaderboard = (level, aircraft, mode) => {
     if (!playerName) return;
+    if (!aircraft || !aircraft.name) return;
     
     const newRecord = {
       name: playerName,
@@ -199,6 +210,8 @@ function PixelClassicShooter() {
     
     setLeaderboardData(updated);
     localStorage.setItem('leaderboard', JSON.stringify(updated));
+    
+    console.log('Leaderboard updated:', newRecord); // 디버그용
   };
   
   // 각 비행기별 100레벨 클리어 추적
@@ -2080,7 +2093,7 @@ if (reverseTriggered) {
               setGameOver(true); gameOverRef.current = true;
               setRunning(false); runningRef.current = false;
               // 게임 오버 시 리더보드 기록
-              addToLeaderboard(levelRef.current, selectedAircraft, isInfiniteMode ? 'Infinite' : 'Normal');
+              addToLeaderboard(levelRef.current, selectedAircraftRef.current, isInfiniteMode ? 'Infinite' : 'Normal');
             }
             return Math.max(0, nv);
           });
@@ -2107,7 +2120,7 @@ if (reverseTriggered) {
             setRunning(false); 
             runningRef.current = false;
             // 게임 오버 시 리더보드 기록
-            addToLeaderboard(levelRef.current, selectedAircraft, isInfiniteMode ? 'Infinite' : 'Normal');
+            addToLeaderboard(levelRef.current, selectedAircraftRef.current, isInfiniteMode ? 'Infinite' : 'Normal');
           }
           return Math.max(0, nv);
         });
