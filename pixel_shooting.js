@@ -1,3 +1,26 @@
+// Firebase 설정
+const firebaseConfig = {
+  apiKey: "AIzaSyBXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXx", // 여기에 실제 API Key 입력
+  authDomain: "your-project.firebaseapp.com",
+  databaseURL: "https://your-project-default-rtdb.firebaseio.com",
+  projectId: "your-project",
+  storageBucket: "your-project.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef123456"
+};
+
+// Firebase 초기화
+let database = null;
+try {
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  database = firebase.database();
+  console.log('Firebase initialized successfully');
+} catch (error) {
+  console.error('Firebase initialization error:', error);
+}
+
 const bossSpecialUpgrades = [
   "megaAttack",   // 공격력 +3
   "superShield",  // 방어막 +5
@@ -140,7 +163,6 @@ function PixelClassicShooter() {
   const [running, setRunning] = useState(false);
   const [gameOver, setGameOver] = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
-  const [showLevelSelect, setShowLevelSelect] = useState(false);
   const [showAircraftSelect, setShowAircraftSelect] = useState(false);
   const [showMainMenu, setShowMainMenu] = useState(true);
   const [showNameInput, setShowNameInput] = useState(false);
@@ -159,15 +181,42 @@ function PixelClassicShooter() {
     return saved ? JSON.parse(saved) : [];
   });
   
-  // 리더보드 화면 열 때마다 데이터 새로고침
-  useEffect(() => {
-    if (showLeaderboard) {
+  // Firebase에서 리더보드 로드
+  const loadLeaderboardFromFirebase = async () => {
+    if (!database) return;
+    
+    try {
+      const leaderboardRef = database.ref('leaderboard');
+      const snapshot = await leaderboardRef.orderByChild('level').limitToLast(50).once('value');
+      const data = snapshot.val();
+      
+      if (data) {
+        const leaderboardArray = Object.values(data).sort((a, b) => b.level - a.level);
+        setLeaderboardData(leaderboardArray);
+        localStorage.setItem('leaderboard', JSON.stringify(leaderboardArray));
+        console.log('Leaderboard loaded from Firebase:', leaderboardArray.length, 'records');
+      }
+    } catch (error) {
+      console.error('Error loading leaderboard from Firebase:', error);
+      // Firebase 실패 시 localStorage에서 로드
       const saved = localStorage.getItem('leaderboard');
       if (saved) {
         setLeaderboardData(JSON.parse(saved));
       }
     }
+  };
+  
+  // 리더보드 화면 열 때마다 데이터 새로고침
+  useEffect(() => {
+    if (showLeaderboard) {
+      loadLeaderboardFromFirebase();
+    }
   }, [showLeaderboard]);
+  
+  // 컴포넌트 마운트 시 Firebase에서 리더보드 로드
+  useEffect(() => {
+    loadLeaderboardFromFirebase();
+  }, []);
   
   // 번역 - 기본 언어: 영어
   const lang = 'en';
@@ -191,7 +240,7 @@ function PixelClassicShooter() {
   const [show100Clear, setShow100Clear] = useState(false);
   
   // 리더보드에 기록 추가
-  const addToLeaderboard = (level, aircraft, mode) => {
+  const addToLeaderboard = async (level, aircraft, mode) => {
     if (!playerName) return;
     if (!aircraft || !aircraft.name) return;
     
@@ -204,14 +253,32 @@ function PixelClassicShooter() {
       timestamp: Date.now()
     };
     
-    const updated = [...leaderboardData, newRecord]
-      .sort((a, b) => b.level - a.level)
-      .slice(0, 50); // 상위 50개만 저장
-    
-    setLeaderboardData(updated);
-    localStorage.setItem('leaderboard', JSON.stringify(updated));
-    
-    console.log('Leaderboard updated:', newRecord); // 디버그용
+    // Firebase에 저장
+    if (database) {
+      try {
+        const leaderboardRef = database.ref('leaderboard');
+        await leaderboardRef.push(newRecord);
+        console.log('✅ Record saved to Firebase:', newRecord);
+        
+        // Firebase에서 최신 데이터 다시 로드
+        await loadLeaderboardFromFirebase();
+      } catch (error) {
+        console.error('❌ Firebase save error:', error);
+        // Firebase 실패 시 localStorage에만 저장
+        const updated = [...leaderboardData, newRecord]
+          .sort((a, b) => b.level - a.level)
+          .slice(0, 50);
+        setLeaderboardData(updated);
+        localStorage.setItem('leaderboard', JSON.stringify(updated));
+      }
+    } else {
+      // Firebase 없을 때 localStorage에만 저장
+      const updated = [...leaderboardData, newRecord]
+        .sort((a, b) => b.level - a.level)
+        .slice(0, 50);
+      setLeaderboardData(updated);
+      localStorage.setItem('leaderboard', JSON.stringify(updated));
+    }
   };
   
   // 각 비행기별 100레벨 클리어 추적
@@ -2238,10 +2305,11 @@ if (reverseTriggered) {
       setShowAircraftSelect(false);
       
       // 무한 모드면 레벨 선택 없이 바로 201레벨 시작
+      // 무한 모드는 201부터, 일반 모드는 1부터 시작
       if (isInfiniteMode) {
         startGameAtLevel(201);
       } else {
-        setShowLevelSelect(true);
+        startGameAtLevel(1);
       }
     }
   }
@@ -2266,7 +2334,6 @@ if (reverseTriggered) {
     runningRef.current = true;
     setShowUpgrade(false); 
     showUpgradeRef.current = false;
-    setShowLevelSelect(false);
     
     setPlayerStats({ 
       moveSpeed: aircraft.stats.moveSpeed, 
@@ -2438,7 +2505,7 @@ if (reverseTriggered) {
           overflowY: "auto"
         }}>
           <h2 style={{ 
-            margin: "0 0 20px 0", 
+            margin: "0 0 10px 0", 
             color: "#fff", 
             fontSize: "28px",
             textAlign: "center",
@@ -2446,6 +2513,18 @@ if (reverseTriggered) {
           }}>
             🏆 LEADERBOARD 🏆
           </h2>
+          
+          <div style={{ 
+            textAlign: "center", 
+            marginBottom: "15px",
+            padding: "5px 10px",
+            background: database ? "rgba(76, 175, 80, 0.2)" : "rgba(244, 67, 54, 0.2)",
+            borderRadius: "5px",
+            fontSize: "12px",
+            color: database ? "#4CAF50" : "#f44336"
+          }}>
+            {database ? "🌐 Firebase Connected" : "📱 Local Only"}
+          </div>
           
           {leaderboardData.length === 0 ? (
             <div style={{ 
@@ -2546,7 +2625,86 @@ if (reverseTriggered) {
             </div>
           )}
           
-          <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "20px" }}>
+          <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "20px", flexWrap: "wrap" }}>
+            <button
+              onClick={() => {
+                // 리더보드 데이터를 JSON 파일로 다운로드
+                const dataStr = JSON.stringify(leaderboardData, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `pixel-shooter-leaderboard-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+              }}
+              style={{
+                padding: "10px 20px",
+                background: "#2196F3",
+                color: "#fff",
+                border: "2px solid #1976D2",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "bold"
+              }}
+            >
+              💾 Export
+            </button>
+            
+            <button
+              onClick={() => {
+                // 파일 선택 input 생성
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.json';
+                input.onchange = (e) => {
+                  const file = e.target.files[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                      try {
+                        const imported = JSON.parse(event.target.result);
+                        if (Array.isArray(imported)) {
+                          // 기존 데이터와 합치고 정렬
+                          const merged = [...leaderboardData, ...imported];
+                          const unique = merged.filter((item, index, self) => 
+                            index === self.findIndex(t => 
+                              t.name === item.name && t.level === item.level && t.timestamp === item.timestamp
+                            )
+                          );
+                          const sorted = unique.sort((a, b) => b.level - a.level).slice(0, 50);
+                          setLeaderboardData(sorted);
+                          localStorage.setItem('leaderboard', JSON.stringify(sorted));
+                          alert('✅ Leaderboard imported successfully!');
+                        } else {
+                          alert('❌ Invalid file format!');
+                        }
+                      } catch (err) {
+                        alert('❌ Failed to import: ' + err.message);
+                      }
+                    };
+                    reader.readAsText(file);
+                  }
+                };
+                input.click();
+              }}
+              style={{
+                padding: "10px 20px",
+                background: "#FF9800",
+                color: "#fff",
+                border: "2px solid #F57C00",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "bold"
+              }}
+            >
+              📂 Import
+            </button>
+            
             <button
               onClick={() => {
                 setShowLeaderboard(false);
@@ -3125,109 +3283,6 @@ if (reverseTriggered) {
             })}
           </div>
         </div>
-      ) : showLevelSelect ? (
-        <div style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          background: "#222",
-          padding: 20,
-          borderRadius: 10,
-          border: "2px solid #555",
-          zIndex: 100
-        }}>
-          <h2 style={{ margin: "0 0 20px 0", color: "#fff" }}>
-            {isInfiniteMode ? "♾️ Infinite Mode - Level Select" : "Level Select"}
-          </h2>
-          {!isInfiniteMode && phoenixUnlocked && (
-            <div style={{ marginBottom: "10px", padding: "8px", background: "#ff0080", borderRadius: "5px", fontSize: "12px", fontWeight: "bold" }}>
-              ⭐ Phoenix stages (101-200) unlocked!
-            </div>
-          )}
-          {isInfiniteMode && (
-            <div style={{ marginBottom: "10px", padding: "10px", background: "linear-gradient(90deg, #ffff00, #ff8800)", borderRadius: "5px", fontSize: "13px", fontWeight: "bold", color: "#000" }}>
-              ⚡ Infinite Mode - Divine Destroyer Exclusive ⚡
-            </div>
-          )}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(10, 1fr)", gap: 5, marginBottom: 20, maxHeight: "400px", overflowY: "auto" }}>
-            {isInfiniteMode ? (
-              // 무한 모드: 201부터 시작
-              [...Array(50)].map((_, i) => {
-                const levelNum = 201 + i;
-                
-                return (
-                  <button
-                    key={i}
-                    onClick={() => startGameAtLevel(levelNum)}
-                    style={{
-                      padding: "8px",
-                      background: "linear-gradient(135deg, #ffff00, #ff8800)",
-                      color: "#000",
-                      border: "2px solid #ff8800",
-                      borderRadius: "4px",
-                      cursor: "pointer",
-                      fontSize: "11px",
-                      fontWeight: "bold",
-                      boxShadow: "0 0 8px rgba(255,136,0,0.6)"
-                    }}
-                  >
-                    {levelNum}
-                  </button>
-                );
-              })
-            ) : (
-              // 일반 모드: 1-200
-              [...Array(200)].map((_, i) => {
-                const levelNum = i + 1;
-                const isPhoenixStage = levelNum > 100;
-                const isLocked = isPhoenixStage && !phoenixUnlocked;
-                const isFinalBoss = levelNum === 200;
-                
-                return (
-                  <button
-                    key={i}
-                    onClick={() => !isLocked && startGameAtLevel(levelNum)}
-                    style={{
-                      padding: "8px",
-                      background: isFinalBoss ? "#ff0000" : (isPhoenixStage ? (isLocked ? "#333" : "#ff0080") : "#333"),
-                      color: isLocked ? "#666" : "#fff",
-                      border: isFinalBoss ? "2px solid #ffff00" : (isPhoenixStage ? "1px solid #ff0080" : "1px solid #666"),
-                      borderRadius: "4px",
-                      cursor: isLocked ? "not-allowed" : "pointer",
-                      fontSize: "11px",
-                      fontWeight: isPhoenixStage ? "bold" : "normal",
-                      opacity: isLocked ? 0.3 : 1,
-                      boxShadow: isFinalBoss && !isLocked ? "0 0 10px #ff0000" : "none"
-                    }}
-                    disabled={isLocked}
-                  >
-                    {isLocked ? "🔒" : (isFinalBoss ? "👑" : levelNum)}
-                  </button>
-                );
-              })
-            )}
-          </div>
-          <button
-            onClick={() => {
-              setShowLevelSelect(false);
-              setShowModeSelect(true);
-            }}
-            style={{
-              padding: "10px 20px",
-              background: "#555",
-              color: "#fff",
-              border: "2px solid #666",
-              borderRadius: "8px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: "bold",
-              width: "100%"
-            }}
-          >
-            ← Back to Mode Select
-          </button>
-        </div>
       ) : (
         <div style={{ marginTop: 8 }}>
           <div style={{ fontSize: 13 }}>
@@ -3251,14 +3306,8 @@ if (reverseTriggered) {
               {runningRef.current ? "Pause" : "Resume"}
             </button>
             <button onClick={() => {
-              setShowLevelSelect(true);
-              setRunning(false);
-              runningRef.current = false;
-            }} style={{ marginLeft: 8 }}>Level Select</button>
-            <button onClick={() => {
               setShowModeSelect(true);
               setShowAircraftSelect(false);
-              setShowLevelSelect(false);
               setRunning(false);
               runningRef.current = false;
               setGameOver(false);
@@ -3267,7 +3316,6 @@ if (reverseTriggered) {
             <button onClick={() => {
               setShowMainMenu(true);
               setShowAircraftSelect(false);
-              setShowLevelSelect(false);
               setShowModeSelect(false);
               setRunning(false);
               runningRef.current = false;
