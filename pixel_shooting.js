@@ -597,6 +597,9 @@ function PixelClassicShooter() {
     return saved ? JSON.parse(saved) : [];
   });
   
+  // 리더보드 필터 (비행기별)
+  const [leaderboardFilter, setLeaderboardFilter] = useState('all'); // 'all' 또는 aircraftId
+  
   // Firebase에서 리더보드 로드
   const loadLeaderboardFromFirebase = async () => {
     if (!database) return;
@@ -3470,6 +3473,64 @@ if (reverseTriggered) {
             {database ? "🌐 Firebase Connected" : "📱 Local Only"}
           </div>
           
+          {/* 비행기 필터 버튼 */}
+          <div style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "8px",
+            justifyContent: "center",
+            marginBottom: "20px",
+            padding: "10px"
+          }}>
+            <button
+              onClick={() => setLeaderboardFilter('all')}
+              style={{
+                padding: "8px 15px",
+                background: leaderboardFilter === 'all' ? "linear-gradient(135deg, #e94560 0%, #533483 100%)" : "rgba(15, 52, 96, 0.5)",
+                color: "#fff",
+                border: leaderboardFilter === 'all' ? "2px solid #e94560" : "2px solid #0f3460",
+                borderRadius: "8px",
+                cursor: "pointer",
+                fontSize: "12px",
+                fontWeight: "bold",
+                transition: "all 0.2s"
+              }}
+              onMouseEnter={(e) => {
+                if (leaderboardFilter !== 'all') e.currentTarget.style.background = "rgba(15, 52, 96, 0.8)";
+              }}
+              onMouseLeave={(e) => {
+                if (leaderboardFilter !== 'all') e.currentTarget.style.background = "rgba(15, 52, 96, 0.5)";
+              }}
+            >
+              🌐 All Aircraft
+            </button>
+            {aircraftTypes.filter(a => !a.locked || phoenixUnlocked || godmodeUnlocked).map(aircraft => (
+              <button
+                key={aircraft.id}
+                onClick={() => setLeaderboardFilter(aircraft.id)}
+                style={{
+                  padding: "8px 15px",
+                  background: leaderboardFilter === aircraft.id ? "linear-gradient(135deg, #e94560 0%, #533483 100%)" : "rgba(15, 52, 96, 0.5)",
+                  color: "#fff",
+                  border: leaderboardFilter === aircraft.id ? `2px solid ${aircraft.color}` : "2px solid #0f3460",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  fontSize: "11px",
+                  fontWeight: leaderboardFilter === aircraft.id ? "bold" : "normal",
+                  transition: "all 0.2s"
+                }}
+                onMouseEnter={(e) => {
+                  if (leaderboardFilter !== aircraft.id) e.currentTarget.style.background = "rgba(15, 52, 96, 0.8)";
+                }}
+                onMouseLeave={(e) => {
+                  if (leaderboardFilter !== aircraft.id) e.currentTarget.style.background = "rgba(15, 52, 96, 0.5)";
+                }}
+              >
+                {aircraft.name}
+              </button>
+            ))}
+          </div>
+          
           {leaderboardData.length === 0 ? (
             <div style={{ 
               textAlign: "center", 
@@ -3479,7 +3540,25 @@ if (reverseTriggered) {
             }}>
               No records yet. Play to set your first record!
             </div>
-          ) : (
+          ) : (() => {
+            const filteredData = leaderboardData.filter(record => 
+              leaderboardFilter === 'all' || record.aircraft === aircraftTypes.find(a => a.id === leaderboardFilter)?.name
+            );
+            
+            if (filteredData.length === 0) {
+              return (
+                <div style={{ 
+                  textAlign: "center", 
+                  color: "#aaa", 
+                  padding: "40px 20px",
+                  fontSize: "16px"
+                }}>
+                  No records for this aircraft yet. Be the first!
+                </div>
+              );
+            }
+            
+            return (
             <div style={{ marginBottom: "20px" }}>
               <table style={{ 
                 width: "100%", 
@@ -3500,7 +3579,7 @@ if (reverseTriggered) {
                   </tr>
                 </thead>
                 <tbody>
-                  {leaderboardData.map((record, idx) => {
+                  {filteredData.map((record, idx) => {
                     const isCurrentPlayer = record.name === playerName;
                     const rankColor = idx === 0 ? "#FFD700" : idx === 1 ? "#C0C0C0" : idx === 2 ? "#CD7F32" : "#fff";
                     const rankIcon = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : "";
@@ -3567,7 +3646,8 @@ if (reverseTriggered) {
                 </tbody>
               </table>
             </div>
-          )}
+            );
+          })()}
           
           <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginTop: "20px", flexWrap: "wrap" }}>
             <button
