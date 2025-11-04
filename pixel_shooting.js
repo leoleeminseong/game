@@ -22,6 +22,43 @@ try {
   console.error('Firebase initialization error:', error);
 }
 
+// 사운드 생성 함수
+const createAudioContext = () => {
+  try {
+    return new (window.AudioContext || window.webkitAudioContext)();
+  } catch (e) {
+    console.log('Web Audio API not supported');
+    return null;
+  }
+};
+
+let audioContext = null;
+
+// 총알 발사 사운드
+const playShootSound = () => {
+  if (!audioContext) {
+    audioContext = createAudioContext();
+  }
+  if (!audioContext) return;
+
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  // 레이저 사운드 효과
+  oscillator.type = 'square';
+  oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.1);
+  
+  gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.1);
+};
+
 const bossSpecialUpgrades = [
   "megaAttack",   // 공격력 +3
   "superShield",  // 방어막 +5
@@ -1526,6 +1563,9 @@ function PixelClassicShooter() {
       }
 
       if ((keysRef.current[" "] || keysRef.current["Space"]) && st.player.cooldown <= 0) {
+        // 총알 발사 사운드 재생
+        playShootSound();
+        
         // 총알 속도 (업그레이드 적용)
         const bulletSpeed = -(playerStatsRef.current.bulletSpeed || 120);
         
