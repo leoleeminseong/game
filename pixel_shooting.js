@@ -33,9 +33,11 @@ const createAudioContext = () => {
 };
 
 let audioContext = null;
+let isSoundEnabled = true; // 전역 사운드 설정
 
 // 총알 발사 사운드
 const playShootSound = () => {
+  if (!isSoundEnabled) return;
   if (!audioContext) {
     audioContext = createAudioContext();
   }
@@ -61,6 +63,7 @@ const playShootSound = () => {
 
 // 미사일 발사 사운드 (Fighter)
 const playMissileSound = () => {
+  if (!isSoundEnabled) return;
   if (!audioContext) {
     audioContext = createAudioContext();
   }
@@ -85,6 +88,7 @@ const playMissileSound = () => {
 
 // 폭탄 투하 사운드 (Bomber)
 const playBombSound = () => {
+  if (!isSoundEnabled) return;
   if (!audioContext) {
     audioContext = createAudioContext();
   }
@@ -109,6 +113,7 @@ const playBombSound = () => {
 
 // 스텔스 활성화 사운드 (Stealth)
 const playStealthSound = () => {
+  if (!isSoundEnabled) return;
   if (!audioContext) {
     audioContext = createAudioContext();
   }
@@ -133,6 +138,7 @@ const playStealthSound = () => {
 
 // 레이저 빔 사운드 (Interceptor)
 const playLaserBeamSound = () => {
+  if (!isSoundEnabled) return;
   if (!audioContext) {
     audioContext = createAudioContext();
   }
@@ -159,6 +165,7 @@ const playLaserBeamSound = () => {
 
 // 보호막 전개 사운드 (Tank)
 const playShieldSound = () => {
+  if (!isSoundEnabled) return;
   if (!audioContext) {
     audioContext = createAudioContext();
   }
@@ -184,6 +191,7 @@ const playShieldSound = () => {
 
 // 피닉스 스킬 사운드
 const playPhoenixSound = () => {
+  if (!isSoundEnabled) return;
   if (!audioContext) {
     audioContext = createAudioContext();
   }
@@ -208,6 +216,7 @@ const playPhoenixSound = () => {
 
 // 갓모드 스킬 사운드
 const playGodmodeSound = () => {
+  if (!isSoundEnabled) return;
   if (!audioContext) {
     audioContext = createAudioContext();
   }
@@ -236,6 +245,7 @@ const playGodmodeSound = () => {
 
 // 적 피격 사운드
 const playHitSound = () => {
+  if (!isSoundEnabled) return;
   if (!audioContext) {
     audioContext = createAudioContext();
   }
@@ -261,6 +271,7 @@ const playHitSound = () => {
 
 // 적 폭발 사운드
 const playExplosionSound = () => {
+  if (!isSoundEnabled) return;
   if (!audioContext) {
     audioContext = createAudioContext();
   }
@@ -286,6 +297,7 @@ const playExplosionSound = () => {
 
 // 플레이어 피격 사운드
 const playPlayerHitSound = () => {
+  if (!isSoundEnabled) return;
   if (!audioContext) {
     audioContext = createAudioContext();
   }
@@ -311,6 +323,7 @@ const playPlayerHitSound = () => {
 
 // 플레이어 사망 사운드
 const playPlayerDeathSound = () => {
+  if (!isSoundEnabled) return;
   if (!audioContext) {
     audioContext = createAudioContext();
   }
@@ -340,6 +353,7 @@ const playPlayerDeathSound = () => {
 
 // 실드 막기 사운드
 const playShieldBlockSound = () => {
+  if (!isSoundEnabled) return;
   if (!audioContext) {
     audioContext = createAudioContext();
   }
@@ -555,12 +569,15 @@ function PixelClassicShooter() {
   const [showSettings, setShowSettings] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem('soundEnabled');
-    return saved !== null ? JSON.parse(saved) : true;
+    const enabled = saved !== null ? JSON.parse(saved) : true;
+    isSoundEnabled = enabled; // 전역 변수 초기화
+    return enabled;
   });
   
-  // 사운드 설정 저장
+  // 사운드 설정 저장 및 전역 변수 업데이트
   useEffect(() => {
     localStorage.setItem('soundEnabled', JSON.stringify(soundEnabled));
+    isSoundEnabled = soundEnabled; // 전역 변수 업데이트
   }, [soundEnabled]);
   
   // 화면 크기 조절 (localStorage에서 저장된 값 불러오기, 기본값 1.5배)
@@ -3180,6 +3197,38 @@ if (reverseTriggered) {
   // ----- render UI -----
   return (
     <div style={{ textAlign: "center", color: "#ddd", fontFamily: "monospace", paddingTop: 8, position: "relative" }}>
+      {/* 설정 버튼 */}
+      <button
+        onClick={() => setShowSettings(true)}
+        style={{
+          position: "fixed",
+          top: "10px",
+          right: "160px",
+          padding: "10px 15px",
+          background: "rgba(15, 52, 96, 0.8)",
+          color: "#fff",
+          border: "2px solid #0f3460",
+          borderRadius: "8px",
+          cursor: "pointer",
+          fontSize: "14px",
+          fontWeight: "bold",
+          zIndex: 1000,
+          transition: "all 0.3s",
+          backdropFilter: "blur(5px)"
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "rgba(22, 33, 62, 0.9)";
+          e.currentTarget.style.transform = "scale(1.05)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "rgba(15, 52, 96, 0.8)";
+          e.currentTarget.style.transform = "scale(1)";
+        }}
+        title="Settings"
+      >
+        ⚙️ Settings
+      </button>
+      
       {/* 전체 화면 버튼 (항상 표시) */}
       <button
         onClick={toggleFullscreen}
@@ -4217,6 +4266,135 @@ if (reverseTriggered) {
               setGameOver(false);
               gameOverRef.current = false;
             }} style={{ marginLeft: 8 }}>Main Menu</button>
+          </div>
+        </div>
+      )}
+
+      {/* 설정 화면 */}
+      {showSettings && (
+        <div style={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "rgba(0, 0, 0, 0.8)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          zIndex: 2000
+        }}>
+          <div style={{
+            background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
+            padding: "40px",
+            borderRadius: "20px",
+            border: "3px solid #0f3460",
+            minWidth: "400px",
+            maxWidth: "600px"
+          }}>
+            <h2 style={{ margin: "0 0 30px 0", color: "#fff", fontSize: "24px", textAlign: "center" }}>
+              ⚙️ Settings
+            </h2>
+            
+            {/* 사운드 설정 */}
+            <div style={{
+              background: "rgba(15, 52, 96, 0.3)",
+              padding: "20px",
+              borderRadius: "10px",
+              marginBottom: "20px",
+              border: "1px solid #0f3460"
+            }}>
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "10px"
+              }}>
+                <span style={{ fontSize: "16px", fontWeight: "bold", color: "#fff" }}>
+                  🔊 Sound Effects
+                </span>
+                <button
+                  onClick={() => setSoundEnabled(!soundEnabled)}
+                  style={{
+                    padding: "8px 20px",
+                    background: soundEnabled ? "#00ff00" : "#ff0000",
+                    color: "#000",
+                    border: "none",
+                    borderRadius: "5px",
+                    cursor: "pointer",
+                    fontWeight: "bold",
+                    fontSize: "14px"
+                  }}
+                >
+                  {soundEnabled ? "ON" : "OFF"}
+                </button>
+              </div>
+              <div style={{ fontSize: "12px", color: "#aaa" }}>
+                Enable or disable all game sound effects
+              </div>
+            </div>
+
+            {/* 화면 크기 설정 */}
+            <div style={{
+              background: "rgba(15, 52, 96, 0.3)",
+              padding: "20px",
+              borderRadius: "10px",
+              marginBottom: "30px",
+              border: "1px solid #0f3460"
+            }}>
+              <div style={{ 
+                color: "#fff", 
+                fontSize: "16px", 
+                marginBottom: "15px",
+                fontWeight: "bold"
+              }}>
+                🔍 Screen Scale: {screenScale.toFixed(1)}x
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="3"
+                step="0.1"
+                value={screenScale}
+                onChange={(e) => setScreenScale(parseFloat(e.target.value))}
+                style={{
+                  width: "100%",
+                  cursor: "pointer",
+                  height: "6px"
+                }}
+              />
+              <div style={{
+                display: "flex",
+                justifyContent: "space-between",
+                fontSize: "12px",
+                color: "#aaa",
+                marginTop: "8px"
+              }}>
+                <span>Smaller (0.5x)</span>
+                <span>Larger (3.0x)</span>
+              </div>
+            </div>
+
+            {/* 닫기 버튼 */}
+            <button
+              onClick={() => setShowSettings(false)}
+              style={{
+                width: "100%",
+                padding: "15px",
+                background: "linear-gradient(135deg, #e94560 0%, #533483 100%)",
+                color: "#fff",
+                border: "none",
+                borderRadius: "10px",
+                cursor: "pointer",
+                fontSize: "16px",
+                fontWeight: "bold",
+                transition: "transform 0.2s"
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = "scale(1.05)"}
+              onMouseLeave={(e) => e.currentTarget.style.transform = "scale(1)"}
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
