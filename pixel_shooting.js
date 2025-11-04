@@ -660,17 +660,28 @@ function PixelClassicShooter() {
   
   // 리더보드에 기록 추가
   const addToLeaderboard = async (level, aircraft, mode) => {
-    if (!playerName) return;
-    if (!aircraft || !aircraft.name) return;
+    const currentPlayerName = playerNameRef.current; // 최신 playerName 사용
+    console.log('📝 addToLeaderboard 호출:', { currentPlayerName, level, aircraft: aircraft?.name, mode });
+    
+    if (!currentPlayerName) {
+      console.log('❌ playerName 없음');
+      return;
+    }
+    if (!aircraft || !aircraft.name) {
+      console.log('❌ aircraft 정보 없음');
+      return;
+    }
     
     const newRecord = {
-      name: playerName,
+      name: currentPlayerName, // playerNameRef.current 사용
       level: level,
       aircraft: aircraft.name,
       mode: mode,
       date: new Date().toISOString(),
       timestamp: Date.now()
     };
+    
+    console.log('💾 저장할 레코드:', newRecord);
     
     // Firebase에 저장
     if (database) {
@@ -735,6 +746,7 @@ function PixelClassicShooter() {
   useEffect(() => { playerStatsRef.current = playerStats; }, [playerStats]);
   useEffect(() => { hitFlashRef.current = hitFlash; }, [hitFlash]);
   useEffect(() => { selectedAircraftRef.current = selectedAircraft; }, [selectedAircraft]);
+  useEffect(() => { playerNameRef.current = playerName; }, [playerName]); // playerName 동기화
 
   function setHitFlashTimed() {
     setHitFlash(true);
@@ -745,6 +757,7 @@ function PixelClassicShooter() {
   const canvasRef = useRef(null);
   const animRef = useRef(null);
   const keysRef = useRef({});
+  const playerNameRef = useRef(playerName); // 최신 playerName 추적용
 
   const gameRef = useRef({
     player: { x: 76, y: 400, w: 10, h: 8, cooldown: 0 },
