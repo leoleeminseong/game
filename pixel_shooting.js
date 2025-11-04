@@ -406,6 +406,21 @@ const aircraftTypes = [
     }
   },
   {
+    id: "glasscannon",
+    name: "F-16 Glass Cannon",
+    description: "F-16과 동일하지만 체력 1 (하드모드)",
+    skillName: "Missile Barrage",
+    skillDesc: "전방 5발 미사일",
+    color: "#ff3366",
+    stats: {
+      lives: 1,
+      moveSpeed: 50,
+      shootCooldown: 0.3,
+      shield: 0,
+      attackPower: 1
+    }
+  },
+  {
     id: "bomber",
     name: "B-52 Bomber",
     description: "강력한 화력, 느린 속도",
@@ -535,6 +550,18 @@ function PixelClassicShooter() {
   const [showModeSelect, setShowModeSelect] = useState(false);
   const [selectedAircraft, setSelectedAircraft] = useState(null);
   const [isInfiniteMode, setIsInfiniteMode] = useState(false);
+  
+  // 설정 화면 상태
+  const [showSettings, setShowSettings] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const saved = localStorage.getItem('soundEnabled');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
+  
+  // 사운드 설정 저장
+  useEffect(() => {
+    localStorage.setItem('soundEnabled', JSON.stringify(soundEnabled));
+  }, [soundEnabled]);
   
   // 화면 크기 조절 (localStorage에서 저장된 값 불러오기, 기본값 1.5배)
   const [screenScale, setScreenScale] = useState(() => {
@@ -705,6 +732,7 @@ function PixelClassicShooter() {
     enemyBullets: [],
     enemies: [],
     barriers: [],
+    particles: [], // 파티클 배열 추가
     lastEnemyShotTime: 0,
     nextWaveScheduled: false,
   });
@@ -1113,6 +1141,110 @@ function PixelClassicShooter() {
     spawnWave(levelRef.current);
   }
 
+  // ----- 플레이어 폭발 파티클 생성 -----
+  function createPlayerExplosion(x, y) {
+    const st = gameRef.current;
+    const colors = ["#ff0000", "#ff4400", "#ff8800", "#ffff00", "#ffffff"];
+    const aircraft = selectedAircraftRef.current || aircraftTypes[0];
+    const aircraftColor = aircraft.color;
+    
+    // 기체 잔해 파편 (15개) - 비행기 색상의 큰 파편들
+    for (let i = 0; i < 15; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 80 + Math.random() * 120; // 느린 속도 (80-200) - 10배 느림
+      const size = 4 + Math.random() * 6; // 큰 파편
+      
+      st.particles.push({
+        x: x,
+        y: y,
+        w: size,
+        h: size,
+        dx: Math.cos(angle) * speed,
+        dy: Math.sin(angle) * speed,
+        color: aircraftColor, // 비행기 색상
+        life: 1.0,
+        decay: 0.004 + Math.random() * 0.003, // 매우 천천히 사라짐
+        isDebris: true // 잔해 표시
+      });
+    }
+    
+    // 금속 파편 (10개) - 회색 금속 조각들
+    for (let i = 0; i < 10; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 60 + Math.random() * 100; // 느린 속도 (60-160) - 10배 느림
+      const size = 3 + Math.random() * 4;
+      
+      st.particles.push({
+        x: x,
+        y: y,
+        w: size,
+        h: size,
+        dx: Math.cos(angle) * speed,
+        dy: Math.sin(angle) * speed,
+        color: ["#888888", "#aaaaaa", "#666666"][Math.floor(Math.random() * 3)], // 금속 색상
+        life: 1.0,
+        decay: 0.005 + Math.random() * 0.003,
+        isDebris: true
+      });
+    }
+    
+    // 50개의 기본 파티클 생성 (원형으로 퍼짐)
+    for (let i = 0; i < 50; i++) {
+      const angle = (Math.PI * 2 * i) / 50;
+      const speed = 200 + Math.random() * 300; // 느린 속도 (200-500) - 10배 느림
+      const size = 2 + Math.random() * 4; // 더 큰 크기
+      
+      st.particles.push({
+        x: x,
+        y: y,
+        w: size,
+        h: size,
+        dx: Math.cos(angle) * speed,
+        dy: Math.sin(angle) * speed,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        life: 1.0, // 수명 (1.0 = 100%)
+        decay: 0.008 + Math.random() * 0.007 // 더 느린 감소율 (더 오래 지속)
+      });
+    }
+    
+    // 추가로 더 빠른 파티클들 (30개)
+    for (let i = 0; i < 30; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 400 + Math.random() * 300; // 중간 속도 (400-700) - 10배 느림
+      
+      st.particles.push({
+        x: x,
+        y: y,
+        w: 2,
+        h: 2,
+        dx: Math.cos(angle) * speed,
+        dy: Math.sin(angle) * speed,
+        color: "#ffffff",
+        life: 1.0,
+        decay: 0.012 + Math.random() * 0.01
+      });
+    }
+    
+    // 불꽃 잔해 파티클 (20개) - 중간 속도로 움직임
+    for (let i = 0; i < 20; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 100 + Math.random() * 150; // 느린 속도 (100-250) - 10배 느림
+      const size = 3 + Math.random() * 3;
+      
+      st.particles.push({
+        x: x,
+        y: y,
+        w: size,
+        h: size,
+        dx: Math.cos(angle) * speed,
+        dy: Math.sin(angle) * speed,
+        color: colors[Math.floor(Math.random() * 3)], // 빨강, 주황 계열만
+        life: 1.0,
+        decay: 0.006 + Math.random() * 0.005 // 가장 느린 감소율
+      });
+    }
+  }
+
   // ----- keyboard handlers -----
   useEffect(() => {
     function kd(e) {
@@ -1145,7 +1277,7 @@ function PixelClassicShooter() {
 
     gameRef.current = {
       player: { x: 76, y: 400, w: 10, h: 8, cooldown: 0 },
-      bullets: [], enemyBullets: [], enemies: [], barriers: [], lastEnemyShotTime: 0, nextWaveScheduled: false
+      bullets: [], enemyBullets: [], enemies: [], barriers: [], particles: [], lastEnemyShotTime: 0, nextWaveScheduled: false
     };
   }
 
@@ -1179,44 +1311,46 @@ function PixelClassicShooter() {
       ctx.fillStyle = "#000";
       ctx.fillRect(0, 0, PIXEL_W, PIXEL_H);
 
-      // player (F16 style)
-      const p = st.player;
-      const aircraft = selectedAircraftRef.current || aircraftTypes[0];
-      const baseColor = aircraft.color;
-      
-      // 스텔스 모드일 때 반투명 효과
-      ctx.save();
-      if (playerStatsRef.current.stealthActive) {
-        ctx.globalAlpha = 0.4;
-      }
-      
-      // Base color
-      ctx.fillStyle = hitFlashRef.current ? "#ff3333" : baseColor;
-      
-      // Main body
-      ctx.fillRect(p.x + 3, p.y, p.w - 6, p.h + 2); // Fuselage
-      
-      // Wings
-      ctx.fillRect(p.x, p.y + 3, p.w, 2); // Main wings
-      ctx.fillRect(p.x + 2, p.y + 1, 4, 1); // Small front wings
-      
-      // Tail
-      ctx.fillRect(p.x + 3, p.y + 6, 2, 2); // Vertical stabilizer
-      
-      // Cockpit (lighter shade)
-      const lighterColor = hitFlashRef.current ? "#ff9999" : baseColor.replace(/[0-9a-f]{2}$/i, (m) => {
-        const val = parseInt(m, 16);
-        return Math.min(255, val + 50).toString(16).padStart(2, '0');
-      });
-      ctx.fillStyle = lighterColor;
-      ctx.fillRect(p.x + 3, p.y + 1, 2, 2);
-      
-      ctx.restore();
-      
-      // Shield effect
-      if (playerStatsRef.current.shield > 0) {
-        ctx.strokeStyle = "#00ffff";
-        ctx.strokeRect(p.x - 1, p.y - 1, p.w + 2, p.h + 4);
+      // player (F16 style) - 생명이 0이 아닐 때만 렌더링
+      if (livesRef.current > 0) {
+        const p = st.player;
+        const aircraft = selectedAircraftRef.current || aircraftTypes[0];
+        const baseColor = aircraft.color;
+        
+        // 스텔스 모드일 때 반투명 효과
+        ctx.save();
+        if (playerStatsRef.current.stealthActive) {
+          ctx.globalAlpha = 0.4;
+        }
+        
+        // Base color
+        ctx.fillStyle = hitFlashRef.current ? "#ff3333" : baseColor;
+        
+        // Main body
+        ctx.fillRect(p.x + 3, p.y, p.w - 6, p.h + 2); // Fuselage
+        
+        // Wings
+        ctx.fillRect(p.x, p.y + 3, p.w, 2); // Main wings
+        ctx.fillRect(p.x + 2, p.y + 1, 4, 1); // Small front wings
+        
+        // Tail
+        ctx.fillRect(p.x + 3, p.y + 6, 2, 2); // Vertical stabilizer
+        
+        // Cockpit (lighter shade)
+        const lighterColor = hitFlashRef.current ? "#ff9999" : baseColor.replace(/[0-9a-f]{2}$/i, (m) => {
+          const val = parseInt(m, 16);
+          return Math.min(255, val + 50).toString(16).padStart(2, '0');
+        });
+        ctx.fillStyle = lighterColor;
+        ctx.fillRect(p.x + 3, p.y + 1, 2, 2);
+        
+        ctx.restore();
+        
+        // Shield effect
+        if (playerStatsRef.current.shield > 0) {
+          ctx.strokeStyle = "#00ffff";
+          ctx.strokeRect(p.x - 1, p.y - 1, p.w + 2, p.h + 4);
+        }
       }
 
       // bullets
@@ -1589,6 +1723,27 @@ function PixelClassicShooter() {
         }
       }
 
+      // particles (파티클 렌더링)
+      for (const particle of st.particles) {
+        ctx.globalAlpha = particle.life;
+        ctx.fillStyle = particle.color;
+        
+        // 잔해 파편은 더 크고 회전하는 효과
+        if (particle.isDebris) {
+          ctx.save();
+          ctx.translate(particle.x + particle.w / 2, particle.y + particle.h / 2);
+          // 회전 각도는 이동 거리에 비례
+          const rotation = (particle.x + particle.y) * 0.05;
+          ctx.rotate(rotation);
+          ctx.fillRect(-particle.w / 2, -particle.h / 2, particle.w, particle.h);
+          ctx.restore();
+        } else {
+          // 일반 파티클
+          ctx.fillRect(particle.x, particle.y, particle.w, particle.h);
+        }
+      }
+      ctx.globalAlpha = 1.0; // 알파 초기화
+
       // UI
       ctx.fillStyle = hitFlashRef.current ? "#ff4444" : "#fff";
       ctx.font = "8px monospace";
@@ -1627,8 +1782,31 @@ function PixelClassicShooter() {
     }
 
     function update(dt) {
-      if (gameOverRef.current || showUpgradeRef.current) return;
       const st = gameRef.current;
+      
+      // 파티클은 항상 업데이트 (게임 오버 상태에서도)
+      for (let i = st.particles.length - 1; i >= 0; i--) {
+        const particle = st.particles[i];
+        
+        // 위치 업데이트
+        particle.x += particle.dx * dt / 1000;
+        particle.y += particle.dy * dt / 1000;
+        
+        // 수명 감소
+        particle.life -= particle.decay;
+        
+        // 중력 효과
+        particle.dy += 50 * dt / 1000;
+        
+        // 수명이 다하거나 화면 밖으로 나가면 제거
+        if (particle.life <= 0 || particle.y > PIXEL_H || particle.x < 0 || particle.x > PIXEL_W) {
+          st.particles.splice(i, 1);
+        }
+      }
+      
+      // 게임 오버나 업그레이드 화면이면 나머지 업데이트는 건너뛰기
+      if (gameOverRef.current || showUpgradeRef.current) return;
+      
       const p = st.player;
 
       // lives가 0 이하인지 체크
@@ -1661,7 +1839,7 @@ function PixelClassicShooter() {
         const aircraftId = playerStatsRef.current.aircraftId;
         console.log("스킬 발동:", aircraftId);
         
-        if (aircraftId === "fighter") {
+        if (aircraftId === "fighter" || aircraftId === "glasscannon") {
           // Missile Barrage: 전방 5발 미사일 발사
           playMissileSound(); // 사운드 재생
           console.log("Fighter 미사일 발사!");
@@ -2024,7 +2202,6 @@ function PixelClassicShooter() {
 
         st.player.cooldown = playerStatsRef.current.shootCooldown;
       }
-
 
       // move bullets
       for (let i = st.bullets.length - 1; i >= 0; i--) {
@@ -2776,11 +2953,19 @@ if (reverseTriggered) {
             const nv = l - 1;
             livesRef.current = nv;
             if (nv <= 0) {
+              // 플레이어 폭발 파티클 생성
+              createPlayerExplosion(p.x + p.w / 2, p.y + p.h / 2);
               playPlayerDeathSound(); // 플레이어 사망 사운드
-              setGameOver(true); gameOverRef.current = true;
-              setRunning(false); runningRef.current = false;
-              // 게임 오버 시 리더보드 기록
-              addToLeaderboard(levelRef.current, selectedAircraftRef.current, isInfiniteMode ? 'Infinite' : 'Normal');
+              
+              // 1초 후 게임 정지 및 게임 오버 표시
+              setTimeout(() => {
+                setRunning(false); 
+                runningRef.current = false;
+                setGameOver(true); 
+                gameOverRef.current = true;
+                // 게임 오버 시 리더보드 기록
+                addToLeaderboard(levelRef.current, selectedAircraftRef.current, isInfiniteMode ? 'Infinite' : 'Normal');
+              }, 1000);
             }
             return Math.max(0, nv);
           });
@@ -2803,13 +2988,19 @@ if (reverseTriggered) {
           const nv = l - enemiesReachedBottom;
           livesRef.current = nv;
           if (nv <= 0) {
+            // 플레이어 폭발 파티클 생성
+            createPlayerExplosion(p.x + p.w / 2, p.y + p.h / 2);
             playPlayerDeathSound(); // 플레이어 사망 사운드
-            setGameOver(true); 
-            gameOverRef.current = true;
-            setRunning(false); 
-            runningRef.current = false;
-            // 게임 오버 시 리더보드 기록
-            addToLeaderboard(levelRef.current, selectedAircraftRef.current, isInfiniteMode ? 'Infinite' : 'Normal');
+            
+            // 1초 후 게임 정지 및 게임 오버 표시
+            setTimeout(() => {
+              setRunning(false); 
+              runningRef.current = false;
+              setGameOver(true); 
+              gameOverRef.current = true;
+              // 게임 오버 시 리더보드 기록
+              addToLeaderboard(levelRef.current, selectedAircraftRef.current, isInfiniteMode ? 'Infinite' : 'Normal');
+            }, 1000);
           }
           return Math.max(0, nv);
         });
@@ -2981,7 +3172,7 @@ if (reverseTriggered) {
 
     gameRef.current = {
       player: { x: 76, y: 400, w: 10, h: 8, cooldown: 0 },
-      bullets: [], enemyBullets: [], enemies: [], barriers: [], lastEnemyShotTime: 0, nextWaveScheduled: false
+      bullets: [], enemyBullets: [], enemies: [], barriers: [], particles: [], lastEnemyShotTime: 0, nextWaveScheduled: false
     };
     spawnWave(selectedLevel);
   }
