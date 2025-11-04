@@ -59,6 +59,181 @@ const playShootSound = () => {
   oscillator.stop(audioContext.currentTime + 0.1);
 };
 
+// 미사일 발사 사운드 (Fighter)
+const playMissileSound = () => {
+  if (!audioContext) {
+    audioContext = createAudioContext();
+  }
+  if (!audioContext) return;
+
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.type = 'sawtooth';
+  oscillator.frequency.setValueAtTime(100, audioContext.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.3);
+  
+  gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.3);
+};
+
+// 폭탄 투하 사운드 (Bomber)
+const playBombSound = () => {
+  if (!audioContext) {
+    audioContext = createAudioContext();
+  }
+  if (!audioContext) return;
+
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.type = 'sine';
+  oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(30, audioContext.currentTime + 0.5);
+  
+  gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.5);
+};
+
+// 스텔스 활성화 사운드 (Stealth)
+const playStealthSound = () => {
+  if (!audioContext) {
+    audioContext = createAudioContext();
+  }
+  if (!audioContext) return;
+
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.type = 'sine';
+  oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
+  oscillator.frequency.linearRampToValueAtTime(2000, audioContext.currentTime + 0.15);
+  
+  gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+  gainNode.gain.linearRampToValueAtTime(0, audioContext.currentTime + 0.15);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.15);
+};
+
+// 레이저 빔 사운드 (Interceptor)
+const playLaserBeamSound = () => {
+  if (!audioContext) {
+    audioContext = createAudioContext();
+  }
+  if (!audioContext) return;
+
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.type = 'square';
+  oscillator.frequency.setValueAtTime(600, audioContext.currentTime);
+  oscillator.frequency.linearRampToValueAtTime(900, audioContext.currentTime + 0.2);
+  oscillator.frequency.linearRampToValueAtTime(600, audioContext.currentTime + 0.4);
+  
+  gainNode.gain.setValueAtTime(0.12, audioContext.currentTime);
+  gainNode.gain.setValueAtTime(0.12, audioContext.currentTime + 0.4);
+  gainNode.gain.linearRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.5);
+};
+
+// 보호막 전개 사운드 (Tank)
+const playShieldSound = () => {
+  if (!audioContext) {
+    audioContext = createAudioContext();
+  }
+  if (!audioContext) return;
+
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.type = 'triangle';
+  oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+  oscillator.frequency.linearRampToValueAtTime(800, audioContext.currentTime + 0.1);
+  oscillator.frequency.linearRampToValueAtTime(400, audioContext.currentTime + 0.2);
+  
+  gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+  gainNode.gain.linearRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.2);
+};
+
+// 피닉스 스킬 사운드
+const playPhoenixSound = () => {
+  if (!audioContext) {
+    audioContext = createAudioContext();
+  }
+  if (!audioContext) return;
+
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  oscillator.type = 'sine';
+  oscillator.frequency.setValueAtTime(1000, audioContext.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(2000, audioContext.currentTime + 0.3);
+  
+  gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.3);
+};
+
+// 갓모드 스킬 사운드
+const playGodmodeSound = () => {
+  if (!audioContext) {
+    audioContext = createAudioContext();
+  }
+  if (!audioContext) return;
+
+  // 복합 사운드 효과
+  for (let i = 0; i < 3; i++) {
+    setTimeout(() => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.type = 'square';
+      oscillator.frequency.setValueAtTime(800 + i * 200, audioContext.currentTime);
+      
+      gainNode.gain.setValueAtTime(0.08, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.15);
+    }, i * 50);
+  }
+};
+
 const bossSpecialUpgrades = [
   "megaAttack",   // 공격력 +3
   "superShield",  // 방어막 +5
@@ -1340,6 +1515,7 @@ function PixelClassicShooter() {
         
         if (aircraftId === "fighter") {
           // Missile Barrage: 전방 5발 미사일 발사
+          playMissileSound(); // 사운드 재생
           console.log("Fighter 미사일 발사!");
           for (let i = 0; i < 5; i++) {
             st.bullets.push({ 
@@ -1357,6 +1533,7 @@ function PixelClassicShooter() {
         } 
         else if (aircraftId === "bomber") {
           // Carpet Bomb: 광역 폭격 (전방에 폭탄 투하)
+          playBombSound(); // 사운드 재생
           console.log("Bomber 폭탄 발사!");
           for (let i = 0; i < 3; i++) {
             st.bullets.push({ 
@@ -1375,6 +1552,7 @@ function PixelClassicShooter() {
         }
         else if (aircraftId === "stealth") {
           // Stealth Mode: 3초간 무적 + 고속이동
+          playStealthSound(); // 사운드 재생
           console.log("Stealth 모드 활성화!");
           playerStatsRef.current.stealthActive = true;
           playerStatsRef.current.stealthDuration = 3;
@@ -1386,6 +1564,7 @@ function PixelClassicShooter() {
         }
         else if (aircraftId === "interceptor") {
           // Laser Beam: 관통 레이저
+          playLaserBeamSound(); // 사운드 재생
           console.log("Interceptor 레이저 발사!");
           st.bullets.push({ 
             x: p.x + p.w / 2 - 2, 
@@ -1403,6 +1582,7 @@ function PixelClassicShooter() {
         }
         else if (aircraftId === "tank") {
           // Shield Burst: 전방위 보호막 발사
+          playShieldSound(); // 사운드 재생
           console.log("Tank 전방위 총알 발사!");
           for (let angle = 0; angle < 360; angle += 30) {
             const rad = angle * Math.PI / 180;
@@ -1422,6 +1602,7 @@ function PixelClassicShooter() {
         }
         else if (aircraftId === "phoenix") {
           // Phoenix Storm: 궁극의 전방위 섬멸 공격
+          playPhoenixSound(); // 사운드 재생
           console.log("Phoenix Storm 발동!");
           
           // 1. 전방 강력한 미사일 10발
@@ -1474,6 +1655,7 @@ function PixelClassicShooter() {
         }
         else if (aircraftId === "godmode") {
           // Divine Annihilation: 신의 영역 - 절대 파괴력
+          playGodmodeSound(); // 사운드 재생
           console.log("Divine Annihilation 발동!");
           
           // 1. 화면 전체 범위 레이저 (5개 - 좌2, 좌1, 중앙, 우1, 우2)
