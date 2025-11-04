@@ -234,6 +234,154 @@ const playGodmodeSound = () => {
   }
 };
 
+// 적 피격 사운드
+const playHitSound = () => {
+  if (!audioContext) {
+    audioContext = createAudioContext();
+  }
+  if (!audioContext) return;
+
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  // 짧고 날카로운 피격음
+  oscillator.type = 'square';
+  oscillator.frequency.setValueAtTime(300, audioContext.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(100, audioContext.currentTime + 0.05);
+  
+  gainNode.gain.setValueAtTime(0.08, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.05);
+};
+
+// 적 폭발 사운드
+const playExplosionSound = () => {
+  if (!audioContext) {
+    audioContext = createAudioContext();
+  }
+  if (!audioContext) return;
+
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  // 폭발음
+  oscillator.type = 'sawtooth';
+  oscillator.frequency.setValueAtTime(200, audioContext.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(20, audioContext.currentTime + 0.2);
+  
+  gainNode.gain.setValueAtTime(0.15, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.2);
+};
+
+// 플레이어 피격 사운드
+const playPlayerHitSound = () => {
+  if (!audioContext) {
+    audioContext = createAudioContext();
+  }
+  if (!audioContext) return;
+
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  // 플레이어 피격음 - 더 낮고 아픈 느낌
+  oscillator.type = 'triangle';
+  oscillator.frequency.setValueAtTime(400, audioContext.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.15);
+  
+  gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.15);
+};
+
+// 플레이어 사망 사운드
+const playPlayerDeathSound = () => {
+  if (!audioContext) {
+    audioContext = createAudioContext();
+  }
+  if (!audioContext) return;
+
+  // 3단계 사망 효과음
+  for (let i = 0; i < 3; i++) {
+    setTimeout(() => {
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.type = 'sawtooth';
+      oscillator.frequency.setValueAtTime(500 - i * 150, audioContext.currentTime);
+      oscillator.frequency.exponentialRampToValueAtTime(30 - i * 5, audioContext.currentTime + 0.4);
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.4);
+    }, i * 100);
+  }
+};
+
+// 실드 막기 사운드
+const playShieldBlockSound = () => {
+  if (!audioContext) {
+    audioContext = createAudioContext();
+  }
+  if (!audioContext) return;
+
+  // 금속성 방어 사운드
+  const oscillator = audioContext.createOscillator();
+  const gainNode = audioContext.createGain();
+  
+  oscillator.connect(gainNode);
+  gainNode.connect(audioContext.destination);
+  
+  // 높은 주파수의 "땡" 소리
+  oscillator.type = 'triangle';
+  oscillator.frequency.setValueAtTime(1200, audioContext.currentTime);
+  oscillator.frequency.exponentialRampToValueAtTime(800, audioContext.currentTime + 0.1);
+  
+  gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+  gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+  
+  oscillator.start(audioContext.currentTime);
+  oscillator.stop(audioContext.currentTime + 0.1);
+  
+  // 울림 효과 추가
+  setTimeout(() => {
+    const oscillator2 = audioContext.createOscillator();
+    const gainNode2 = audioContext.createGain();
+    
+    oscillator2.connect(gainNode2);
+    gainNode2.connect(audioContext.destination);
+    
+    oscillator2.type = 'sine';
+    oscillator2.frequency.setValueAtTime(600, audioContext.currentTime);
+    
+    gainNode2.gain.setValueAtTime(0.1, audioContext.currentTime);
+    gainNode2.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.08);
+    
+    oscillator2.start(audioContext.currentTime);
+    oscillator2.stop(audioContext.currentTime + 0.08);
+  }, 20);
+};
+
 const bossSpecialUpgrades = [
   "megaAttack",   // 공격력 +3
   "superShield",  // 방어막 +5
@@ -2451,13 +2599,17 @@ if (reverseTriggered) {
             if (b.x < e.x + e.w && b.x + b.w > e.x && e.y < b.y + b.h && e.y + e.h > 0) {
               const dmg = (playerStatsRef.current.attackPower || 1) * 3; // 레이저는 3배 데미지
               e.hp -= dmg * (dt / 1000) * 10; // 지속 피해
+              playHitSound(); // 피격 사운드
             }
             continue; // 레이저는 제거하지 않음
           }
           
           // 일반 충돌 체크
-          if (b.x < e.x + e.w && b.x + b.w > e.x && b.y < e.y + e.h && b.y + b.h > e.y) {
+          if (b.x < e.x + e.w && b.x + b.w > e.x && b.y < e.y + e.h && b.y + e.h > e.y) {
             const dmg = playerStatsRef.current.attackPower || 1;
+            
+            // 피격 사운드 재생
+            playHitSound();
             
             // 번개는 3배 데미지
             if (b.isLightning) {
@@ -2568,6 +2720,7 @@ if (reverseTriggered) {
             }
 
             if (e.hp <= 0) {
+              playExplosionSound(); // 폭발 사운드
               const wasBoss = e.boss;
               const bossSkill = e.skill;
               st.enemies.splice(j, 1);
@@ -2610,14 +2763,20 @@ if (reverseTriggered) {
           }
           
           setHitFlashTimed();
+          
+          // 실드가 있으면 실드 블록 사운드, 없으면 피격 사운드
           if (playerStatsRef.current.shield > 0) {
+            playShieldBlockSound(); // 실드 방어 사운드
             setPlayerStats(ps => { const nv = { ...ps, shield: Math.max(0, ps.shield - 1) }; playerStatsRef.current = nv; return nv; });
             continue;
           }
+          
+          playPlayerHitSound(); // 플레이어 피격 사운드
           setLives((l) => {
             const nv = l - 1;
             livesRef.current = nv;
             if (nv <= 0) {
+              playPlayerDeathSound(); // 플레이어 사망 사운드
               setGameOver(true); gameOverRef.current = true;
               setRunning(false); runningRef.current = false;
               // 게임 오버 시 리더보드 기록
@@ -2639,10 +2798,12 @@ if (reverseTriggered) {
       }
       
       if (enemiesReachedBottom > 0) {
+        playPlayerHitSound(); // 적이 화면 끝에 도달했을 때도 피격음
         setLives((l) => {
           const nv = l - enemiesReachedBottom;
           livesRef.current = nv;
           if (nv <= 0) {
+            playPlayerDeathSound(); // 플레이어 사망 사운드
             setGameOver(true); 
             gameOverRef.current = true;
             setRunning(false); 
