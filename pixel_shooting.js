@@ -913,10 +913,10 @@ function PixelClassicShooter() {
             const enemyType = getRandomEnemyType();
             const enemyHP = baseEnemyHP * enemyType.hpMult;
             enemies.push({ 
-              x: 8 + c * 18, 
-              y: 8 + r * 14, 
-              w: 8, 
-              h: 6, 
+              x: 8 + c * 24, 
+              y: 8 + r * 18, 
+              w: 12, 
+              h: 8, 
               dir: 1, 
               hp: enemyHP, 
               baseHp: enemyHP, 
@@ -934,16 +934,16 @@ function PixelClassicShooter() {
         const rows = Math.min(4, 2 + Math.floor(levelNum / 2));
         for (let r = 0; r < rows; r++) {
           const count = r + 1;
-          const startX = (PIXEL_W / 2) - (count * 9);
+          const startX = (PIXEL_W / 2) - (count * 12);
           for (let c = 0; c < count; c++) {
             if (enemies.length >= maxEnemies) break;
             const enemyType = getRandomEnemyType();
             const enemyHP = baseEnemyHP * enemyType.hpMult;
             enemies.push({ 
-              x: startX + c * 18, 
-              y: 10 + r * 14, 
-              w: 8, 
-              h: 6, 
+              x: startX + c * 24, 
+              y: 10 + r * 18, 
+              w: 12, 
+              h: 8, 
               dir: 1, 
               hp: enemyHP, 
               baseHp: enemyHP, 
@@ -963,14 +963,14 @@ function PixelClassicShooter() {
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
             if (enemies.length >= maxEnemies) break;
-            const offset = (r % 2) * 9;
+            const offset = (r % 2) * 12;
             const enemyType = getRandomEnemyType();
             const enemyHP = baseEnemyHP * enemyType.hpMult;
             enemies.push({ 
-              x: 10 + c * 18 + offset, 
-              y: 10 + r * 14, 
-              w: 8, 
-              h: 6, 
+              x: 10 + c * 24 + offset, 
+              y: 10 + r * 18, 
+              w: 12, 
+              h: 8, 
               dir: 1, 
               hp: enemyHP, 
               baseHp: enemyHP, 
@@ -991,10 +991,10 @@ function PixelClassicShooter() {
           const enemyType = getRandomEnemyType();
           const enemyHP = baseEnemyHP * enemyType.hpMult;
           enemies.push({
-            x: Math.random() * (PIXEL_W - 10),
+            x: Math.random() * (PIXEL_W - 14),
             y: 8 + Math.random() * 40,
-            w: 8,
-            h: 6,
+            w: 12,
+            h: 8,
             dir: 1,
             hp: enemyHP,
             baseHp: enemyHP,
@@ -1856,11 +1856,33 @@ function PixelClassicShooter() {
           // 일반 적 비행기 렌더링
           const ratio = e.hp / e.baseHp;
           
-          // 적 타입에 따른 기본 색상
+          // 적 타입에 따른 기본 색상 (체력에 따라 변화)
           let enemyColor;
           if (e.color) {
-            // 타입별 고유 색상 사용
-            enemyColor = e.color;
+            // 타입별 고유 색상을 체력 비율에 따라 어둡게
+            // 기본 색상에서 RGB 값 추출
+            let r, g, b;
+            if (e.color.startsWith('#')) {
+              r = parseInt(e.color.substr(1, 2), 16);
+              g = parseInt(e.color.substr(3, 2), 16);
+              b = parseInt(e.color.substr(5, 2), 16);
+            } else {
+              // rgb() 형식 파싱
+              const match = e.color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+              if (match) {
+                r = parseInt(match[1]);
+                g = parseInt(match[2]);
+                b = parseInt(match[3]);
+              }
+            }
+            
+            // 체력이 낮을수록 어둡게 (ratio가 낮을수록 어두워짐)
+            const damageRatio = 0.3 + (ratio * 0.7); // 30% ~ 100% 밝기
+            r = Math.floor(r * damageRatio);
+            g = Math.floor(g * damageRatio);
+            b = Math.floor(b * damageRatio);
+            
+            enemyColor = `rgb(${r},${g},${b})`;
           } else {
             // 기본 색상 (체력 비율에 따라 변화)
             const red = Math.floor(255 - 155 * ratio);
@@ -1868,33 +1890,34 @@ function PixelClassicShooter() {
             enemyColor = `rgb(${red},${green},66)`;
           }
           
-          // 적 비행기 본체 (역삼각형)
-          ctx.fillStyle = enemyColor;
-          ctx.fillRect(e.x + e.w/2 - 1, e.y, 2, e.h); // 중앙 몸체
-          
-          // 날개
-          ctx.fillRect(e.x, e.y + e.h/2, e.w, 2); // 수평 날개
-          
-          // 꼬리 날개
-          ctx.fillRect(e.x + e.w/2 - 1, e.y + e.h - 2, 2, 2);
-          
-          // 조종석 (더 밝은 색)
-          let lighterColor;
-          if (e.color) {
-            // 타입별 색상을 더 밝게
-            ctx.fillStyle = enemyColor;
-            ctx.globalAlpha = 0.7;
-            ctx.fillRect(e.x + e.w/2 - 1, e.y + 1, 2, 1);
-            ctx.globalAlpha = 1.0;
-          } else {
-            const red = Math.floor(255 - 155 * ratio);
-            const green = Math.floor(100 + 155 * ratio);
-            lighterColor = `rgb(${Math.min(255, red + 50)},${Math.min(255, green + 50)},${Math.min(255, 66 + 50)})`;
-            ctx.fillStyle = lighterColor;
-            ctx.fillRect(e.x + e.w/2 - 1, e.y + 1, 2, 1);
+          // 체력이 낮을 때 깜빡이는 효과 추가
+          if (ratio < 0.3 && Math.floor(performance.now() / 100) % 2 === 0) {
+            ctx.globalAlpha = 0.6;
           }
-          ctx.fillStyle = lighterColor;
-          ctx.fillRect(e.x + e.w/2 - 1, e.y + 1, 2, 2);
+          
+          // 적 비행기 본체 (위아래 반전 - 아래를 향함)
+          ctx.fillStyle = enemyColor;
+          // 중앙 몸체 (더 두껍게)
+          ctx.fillRect(e.x + e.w/2 - 2, e.y, 4, e.h);
+          
+          // 날개 (더 크게)
+          ctx.fillRect(e.x, e.y + e.h/2 - 1, e.w, 3); // 수평 날개
+          
+          // 뒤쪽 작은 날개 (꼬리 부분)
+          ctx.fillRect(e.x + 2, e.y + e.h - 3, e.w - 4, 1);
+          
+          // 앞쪽 꼬리 날개 (앞부분)
+          ctx.fillRect(e.x + e.w/2 - 2, e.y, 4, 2);
+          
+          // 알파값 복원
+          ctx.globalAlpha = 1.0;
+          
+          // 조종석 (더 밝은 색으로 하이라이트 - 하단에 위치)
+          ctx.save();
+          ctx.globalAlpha = 0.8;
+          ctx.fillStyle = "#ffffff";
+          ctx.fillRect(e.x + e.w/2 - 1, e.y + e.h - 3, 3, 2);
+          ctx.restore();
         }
       }
 
