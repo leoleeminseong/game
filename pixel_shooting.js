@@ -767,6 +767,8 @@ function PixelClassicShooter() {
     barriers: [],
     particles: [], // 파티클 배열 추가
     lastEnemyShotTime: 0,
+    lastFastEnemyShotTime: 0, // 빠른 적 발사 타이머
+    lastHeavyEnemyShotTime: 0, // 강력한 적 발사 타이머
     nextWaveScheduled: false,
   });
 
@@ -853,7 +855,53 @@ function PixelClassicShooter() {
         maxEnemies = 10;
       }
       
-      const enemyHP = baseEnemyHP;
+      // 적 타입 정의
+      const enemyTypes = [
+        { 
+          type: 'normal', 
+          hpMult: 1, 
+          speedMult: 1, 
+          damage: 1, 
+          color: '#ff0000', 
+          weight: 50 // 50% 확률
+        },
+        { 
+          type: 'tank', 
+          hpMult: 3, 
+          speedMult: 0.5, 
+          damage: 1, 
+          color: '#00ff00', 
+          weight: 20 // 20% 확률
+        },
+        { 
+          type: 'fast', 
+          hpMult: 0.7, 
+          speedMult: 2, 
+          damage: 1, 
+          color: '#00ffff', 
+          weight: 20 // 20% 확률
+        },
+        { 
+          type: 'heavy', 
+          hpMult: 1.5, 
+          speedMult: 0.8, 
+          damage: 2, 
+          color: '#ff00ff', 
+          weight: 10 // 10% 확률
+        }
+      ];
+      
+      // 가중치 기반 랜덤 타입 선택 함수
+      function getRandomEnemyType() {
+        const totalWeight = enemyTypes.reduce((sum, type) => sum + type.weight, 0);
+        let random = Math.random() * totalWeight;
+        
+        for (const type of enemyTypes) {
+          random -= type.weight;
+          if (random <= 0) return type;
+        }
+        return enemyTypes[0]; // fallback
+      }
 
       if (patternType === 0) {
         // 💠 기본 격자 패턴
@@ -862,7 +910,22 @@ function PixelClassicShooter() {
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
             if (enemies.length >= maxEnemies) break;
-            enemies.push({ x: 8 + c * 18, y: 8 + r * 14, w: 8, h: 6, dir: 1, hp: enemyHP, baseHp: enemyHP, boss: false });
+            const enemyType = getRandomEnemyType();
+            const enemyHP = baseEnemyHP * enemyType.hpMult;
+            enemies.push({ 
+              x: 8 + c * 18, 
+              y: 8 + r * 14, 
+              w: 8, 
+              h: 6, 
+              dir: 1, 
+              hp: enemyHP, 
+              baseHp: enemyHP, 
+              boss: false,
+              enemyType: enemyType.type,
+              speedMult: enemyType.speedMult,
+              damage: enemyType.damage,
+              color: enemyType.color
+            });
           }
           if (enemies.length >= maxEnemies) break;
         }
@@ -874,7 +937,22 @@ function PixelClassicShooter() {
           const startX = (PIXEL_W / 2) - (count * 9);
           for (let c = 0; c < count; c++) {
             if (enemies.length >= maxEnemies) break;
-            enemies.push({ x: startX + c * 18, y: 10 + r * 14, w: 8, h: 6, dir: 1, hp: enemyHP, baseHp: enemyHP, boss: false });
+            const enemyType = getRandomEnemyType();
+            const enemyHP = baseEnemyHP * enemyType.hpMult;
+            enemies.push({ 
+              x: startX + c * 18, 
+              y: 10 + r * 14, 
+              w: 8, 
+              h: 6, 
+              dir: 1, 
+              hp: enemyHP, 
+              baseHp: enemyHP, 
+              boss: false,
+              enemyType: enemyType.type,
+              speedMult: enemyType.speedMult,
+              damage: enemyType.damage,
+              color: enemyType.color
+            });
           }
           if (enemies.length >= maxEnemies) break;
         }
@@ -886,7 +964,22 @@ function PixelClassicShooter() {
           for (let c = 0; c < cols; c++) {
             if (enemies.length >= maxEnemies) break;
             const offset = (r % 2) * 9;
-            enemies.push({ x: 10 + c * 18 + offset, y: 10 + r * 14, w: 8, h: 6, dir: 1, hp: enemyHP, baseHp: enemyHP, boss: false });
+            const enemyType = getRandomEnemyType();
+            const enemyHP = baseEnemyHP * enemyType.hpMult;
+            enemies.push({ 
+              x: 10 + c * 18 + offset, 
+              y: 10 + r * 14, 
+              w: 8, 
+              h: 6, 
+              dir: 1, 
+              hp: enemyHP, 
+              baseHp: enemyHP, 
+              boss: false,
+              enemyType: enemyType.type,
+              speedMult: enemyType.speedMult,
+              damage: enemyType.damage,
+              color: enemyType.color
+            });
           }
           if (enemies.length >= maxEnemies) break;
         }
@@ -895,6 +988,8 @@ function PixelClassicShooter() {
         const count = Math.min(maxEnemies, 3 + Math.floor(levelNum / 2));
         for (let i = 0; i < count; i++) {
           if (enemies.length >= maxEnemies) break;
+          const enemyType = getRandomEnemyType();
+          const enemyHP = baseEnemyHP * enemyType.hpMult;
           enemies.push({
             x: Math.random() * (PIXEL_W - 10),
             y: 8 + Math.random() * 40,
@@ -903,7 +998,11 @@ function PixelClassicShooter() {
             dir: 1,
             hp: enemyHP,
             baseHp: enemyHP,
-            boss: false
+            boss: false,
+            enemyType: enemyType.type,
+            speedMult: enemyType.speedMult,
+            damage: enemyType.damage,
+            color: enemyType.color
           });
         }
       }
@@ -917,6 +1016,8 @@ function PixelClassicShooter() {
     st.enemyBullets = [];
     st.nextWaveScheduled = false;
     st.lastEnemyShotTime = 0;
+    st.lastFastEnemyShotTime = 0;
+    st.lastHeavyEnemyShotTime = 0;
   }
 
   // ----- upgrades pools -----
@@ -1310,7 +1411,9 @@ function PixelClassicShooter() {
 
     gameRef.current = {
       player: { x: 76, y: 400, w: 10, h: 8, cooldown: 0 },
-      bullets: [], enemyBullets: [], enemies: [], barriers: [], particles: [], lastEnemyShotTime: 0, nextWaveScheduled: false
+      bullets: [], enemyBullets: [], enemies: [], barriers: [], particles: [], 
+      lastEnemyShotTime: 0, lastFastEnemyShotTime: 0, lastHeavyEnemyShotTime: 0, 
+      nextWaveScheduled: false
     };
   }
 
@@ -1428,8 +1531,25 @@ function PixelClassicShooter() {
         }
       }
       for (const b of st.enemyBullets) {
-        ctx.fillStyle = b.color || "#ff6666";
+        // 데미지에 따라 총알 색상 변경
+        let bulletColor = b.color;
+        if (!bulletColor) {
+          if (b.damage >= 2) {
+            bulletColor = "#ff00ff"; // 강력한 총알 (보라색)
+          } else {
+            bulletColor = "#ff6666"; // 일반 총알 (빨간색)
+          }
+        }
+        ctx.fillStyle = bulletColor;
         ctx.fillRect(b.x, b.y, b.w, b.h);
+        
+        // 강력한 총알에 글로우 효과
+        if (b.damage >= 2) {
+          ctx.save();
+          ctx.globalAlpha = 0.5;
+          ctx.fillRect(b.x - 1, b.y - 1, b.w + 2, b.h + 2);
+          ctx.restore();
+        }
       }
 
       // enemies
@@ -1735,9 +1855,18 @@ function PixelClassicShooter() {
         } else {
           // 일반 적 비행기 렌더링
           const ratio = e.hp / e.baseHp;
-          const red = Math.floor(255 - 155 * ratio);
-          const green = Math.floor(100 + 155 * ratio);
-          const enemyColor = `rgb(${red},${green},66)`;
+          
+          // 적 타입에 따른 기본 색상
+          let enemyColor;
+          if (e.color) {
+            // 타입별 고유 색상 사용
+            enemyColor = e.color;
+          } else {
+            // 기본 색상 (체력 비율에 따라 변화)
+            const red = Math.floor(255 - 155 * ratio);
+            const green = Math.floor(100 + 155 * ratio);
+            enemyColor = `rgb(${red},${green},66)`;
+          }
           
           // 적 비행기 본체 (역삼각형)
           ctx.fillStyle = enemyColor;
@@ -1750,7 +1879,20 @@ function PixelClassicShooter() {
           ctx.fillRect(e.x + e.w/2 - 1, e.y + e.h - 2, 2, 2);
           
           // 조종석 (더 밝은 색)
-          const lighterColor = `rgb(${Math.min(255, red + 50)},${Math.min(255, green + 50)},${Math.min(255, 66 + 50)})`;
+          let lighterColor;
+          if (e.color) {
+            // 타입별 색상을 더 밝게
+            ctx.fillStyle = enemyColor;
+            ctx.globalAlpha = 0.7;
+            ctx.fillRect(e.x + e.w/2 - 1, e.y + 1, 2, 1);
+            ctx.globalAlpha = 1.0;
+          } else {
+            const red = Math.floor(255 - 155 * ratio);
+            const green = Math.floor(100 + 155 * ratio);
+            lighterColor = `rgb(${Math.min(255, red + 50)},${Math.min(255, green + 50)},${Math.min(255, 66 + 50)})`;
+            ctx.fillStyle = lighterColor;
+            ctx.fillRect(e.x + e.w/2 - 1, e.y + 1, 2, 1);
+          }
           ctx.fillStyle = lighterColor;
           ctx.fillRect(e.x + e.w/2 - 1, e.y + 1, 2, 2);
         }
@@ -2292,44 +2434,85 @@ function PixelClassicShooter() {
         if (b.y > PIXEL_H) st.enemyBullets.splice(i, 1);
       }
 
-      // enemy movement
-      let reverse = false;
+      // enemy movement - 각 적 개별적으로 벽 충돌 체크
       for (const e of st.enemies) {
-        const speed = e.boss ? 10 : 20;
+        const baseSpeed = e.boss ? 20 : 40;
+        const speedMult = e.speedMult || 1; // 타입별 속도 배수
+        const speed = baseSpeed * speedMult;
         e.x += e.dir * speed * dt / 1000;
-        if (e.x < 0 || e.x + e.w > PIXEL_W) reverse = true;
-      }
-            if (reverse) {
-        for (const e of st.enemies) {
+        
+        // 벽에 닿은 적만 개별적으로 방향 전환 및 하강
+        if (e.x < 0) {
+          e.x = 0; // 위치 보정
           e.dir *= -1;
-          if (!e.boss) e.y += e.h; // normal enemies descend by their height
+          if (!e.boss) e.y += e.h; // 일반 적만 하강
+        } else if (e.x + e.w > PIXEL_W) {
+          e.x = PIXEL_W - e.w; // 위치 보정
+          e.dir *= -1;
+          if (!e.boss) e.y += e.h; // 일반 적만 하강
         }
       }
 
-      let reverseTriggered = false;
-for (const e of st.enemies) {
-  const speed = e.boss ? 20 : 40;
-  e.x += e.dir * speed * dt / 1000;
-  if (e.x < 0 || e.x + e.w > PIXEL_W) reverseTriggered = false;
-}
-
-if (reverseTriggered) {
-  for (const e of st.enemies) {
-    e.dir *= -0.25 ;
-    if (!e.boss) e.y += e.h;
-  }
-  // 💡 reverse가 한 번 발생하면 바로 한 프레임 쉬기
-  reverseTriggered = true;
-}
-
-      // normal enemy shooting timer
+      // normal enemy shooting timer - 타입별로 다른 공격 속도
       const now = performance.now();
       if (st.enemies.length > 0 && now - (st.lastEnemyShotTime || 0) > 700) {
-        const shooter = st.enemies[Math.floor(Math.random() * st.enemies.length)];
-        if (shooter && !shooter.boss) {
-          st.enemyBullets.push({ x: shooter.x + shooter.w / 2 - 1, y: shooter.y + shooter.h, w: 2, h: 4, dy: 80 });
+        const nonBossEnemies = st.enemies.filter(e => !e.boss);
+        if (nonBossEnemies.length > 0) {
+          const shooter = nonBossEnemies[Math.floor(Math.random() * nonBossEnemies.length)];
+          if (shooter) {
+            // 적 타입에 따른 데미지를 총알에 추가
+            st.enemyBullets.push({ 
+              x: shooter.x + shooter.w / 2 - 1, 
+              y: shooter.y + shooter.h, 
+              w: 2, 
+              h: 4, 
+              dy: 80,
+              damage: shooter.damage || 1 // 적의 데미지
+            });
+          }
         }
         st.lastEnemyShotTime = now;
+      }
+      
+      // 빠른 적들은 더 자주 공격 (추가 발사)
+      if (st.enemies.length > 0 && now - (st.lastFastEnemyShotTime || 0) > 400) {
+        const fastEnemies = st.enemies.filter(e => !e.boss && e.enemyType === 'fast');
+        if (fastEnemies.length > 0) {
+          const shooter = fastEnemies[Math.floor(Math.random() * fastEnemies.length)];
+          if (shooter) {
+            st.enemyBullets.push({ 
+              x: shooter.x + shooter.w / 2 - 1, 
+              y: shooter.y + shooter.h, 
+              w: 2, 
+              h: 4, 
+              dy: 100, // 더 빠른 총알
+              damage: shooter.damage || 1
+            });
+          }
+        }
+        st.lastFastEnemyShotTime = now;
+      }
+      
+      // 강력한 적들은 가끔 강력한 공격
+      if (st.enemies.length > 0 && now - (st.lastHeavyEnemyShotTime || 0) > 1500) {
+        const heavyEnemies = st.enemies.filter(e => !e.boss && e.enemyType === 'heavy');
+        if (heavyEnemies.length > 0) {
+          const shooter = heavyEnemies[Math.floor(Math.random() * heavyEnemies.length)];
+          if (shooter) {
+            // 3발 동시 발사
+            for (let i = -1; i <= 1; i++) {
+              st.enemyBullets.push({ 
+                x: shooter.x + shooter.w / 2 - 1 + i * 4, 
+                y: shooter.y + shooter.h, 
+                w: 2, 
+                h: 4, 
+                dy: 80,
+                damage: shooter.damage || 1
+              });
+            }
+          }
+        }
+        st.lastHeavyEnemyShotTime = now;
       }
 
       // boss skills and basic attacks
@@ -2982,8 +3165,9 @@ if (reverseTriggered) {
           }
           
           playPlayerHitSound(); // 플레이어 피격 사운드
+          const bulletDamage = eb.damage || 1; // 총알의 데미지 (기본 1)
           setLives((l) => {
-            const nv = l - 1;
+            const nv = l - bulletDamage; // 데미지만큼 라이프 감소
             livesRef.current = nv;
             if (nv <= 0) {
               // 플레이어 폭발 파티클 생성
