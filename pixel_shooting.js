@@ -923,7 +923,7 @@ function PixelClassicShooter() {
             const enemyHP = baseEnemyHP * enemyType.hpMult;
             enemies.push({ 
               x: 8 + c * 24, 
-              y: 8 + r * 18, 
+              y: 30 + r * 18, 
               w: 12, 
               h: 8, 
               dir: 1, 
@@ -950,7 +950,7 @@ function PixelClassicShooter() {
             const enemyHP = baseEnemyHP * enemyType.hpMult;
             enemies.push({ 
               x: startX + c * 24, 
-              y: 10 + r * 18, 
+              y: 30 + r * 18, 
               w: 12, 
               h: 8, 
               dir: 1, 
@@ -977,7 +977,7 @@ function PixelClassicShooter() {
             const enemyHP = baseEnemyHP * enemyType.hpMult;
             enemies.push({ 
               x: 10 + c * 24 + offset, 
-              y: 10 + r * 18, 
+              y: 30 + r * 18, 
               w: 12, 
               h: 8, 
               dir: 1, 
@@ -1001,7 +1001,7 @@ function PixelClassicShooter() {
           const enemyHP = baseEnemyHP * enemyType.hpMult;
           enemies.push({
             x: Math.random() * (PIXEL_W - 14),
-            y: 8 + Math.random() * 40,
+            y: 30 + Math.random() * 40,
             w: 12,
             h: 8,
             dir: 1,
@@ -1030,7 +1030,7 @@ function PixelClassicShooter() {
   }
 
   // ----- upgrades pools -----
-  const allUpgrades = ["speed", "fire", "life", "attackPower", "skillCooldown"];
+  const allUpgrades = ["speed", "fire", "attackPower", "skillCooldown"]; // "life" 제거
   const rareUpgrades = ["ultraSpeed", "ultraFire", "shield", "bulletSpeed"];
 
   function applyUpgrade(type) {
@@ -1045,9 +1045,6 @@ function PixelClassicShooter() {
     }
     if (type === "fire") {
       setPlayerStats((p) => { const nv = { ...p, shootCooldown: Math.max(0.05, p.shootCooldown - 0.04) }; playerStatsRef.current = nv; return nv; }); // 0.03 -> 0.05
-    }
-    if (type === "life") {
-      setLives((l) => { const nv = l + 2; livesRef.current = nv; return nv; }); // 1 -> 2 (더 가치있게)
     }
 
     if (type === "attackPower") { 
@@ -1073,7 +1070,7 @@ function PixelClassicShooter() {
       setPlayerStats((p) => { const nv = { ...p, shootCooldown: Math.max(0.05, p.shootCooldown - 0.12) }; playerStatsRef.current = nv; return nv; }); // 0.03 -> 0.05
     }
     if (type === "shield") {
-      setPlayerStats((p) => { const nv = { ...p, shield: p.shield + 2 }; playerStatsRef.current = nv; return nv; }); // 3 -> 2
+      setPlayerStats((p) => { const nv = { ...p, shield: p.shield + 3 }; playerStatsRef.current = nv; return nv; }); // 2 -> 3
     }
     if (type === "bulletSpeed") {
       setPlayerStats((p) => { 
@@ -4770,7 +4767,6 @@ function PixelClassicShooter() {
                {u === "attackPower" && "💥 +1 damage"}
                 {u === "speed" && "🚀 Move Speed +10"}
                 {u === "fire" && "🔥 Fire Rate Up"}
-                {u === "life" && "💖 +1 Life"}
                 {u === "skillCooldown" && "⚡ Skill Cooldown -1s"}
                 {u === "ultraSpeed" && "⚡ Ultra Speed +30"}
                 {u === "ultraFire" && "💥 Ultra Fire Rate"}
