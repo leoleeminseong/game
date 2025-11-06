@@ -801,22 +801,26 @@ function PixelClassicShooter() {
       const def = bossDefinitions[idx];
       const bossHeight = 18; // 보스의 높이
       
-      // 보스 체력 설정 (전체적으로 3배 증가)
+      // 보스 체력 설정 - 밸런스 조정
       let bossHp;
       if (levelNum === 100) {
-        bossHp = 690; // 230 -> 460 -> 690
+        bossHp = 500; // 690 -> 500 (너무 어려움)
       } else if (levelNum === 200) {
-        // 200레벨 최종 보스는 극강의 체력 (3페이즈 각 2배)
-        bossHp = 12000; // 6000 -> 12000 (1페이즈 2배)
+        // 200레벨 최종 보스
+        bossHp = 8000; // 12000 -> 8000 (너무 어려움)
       } else if (isInfiniteModeLevel) {
-        // 무한 모드 보스는 레벨에 따라 체력 증가 (210: 870, 220: 1410...)
-        bossHp = 600 + (levelNum - 200) * 27; // 3배 증가
+        // 무한 모드 보스
+        bossHp = 500 + (levelNum - 200) * 20; // 27 -> 20 (증가율 감소)
       } else if (isPhoenixStage) {
         // 피닉스 스테이지 보스 (101-190)
-        bossHp = 900 + (levelNum - 100) * 24; // 3배 증가
+        bossHp = 600 + (levelNum - 100) * 18; // 24 -> 18 (증가율 감소)
       } else {
-        // 일반 모드 보스 (10-90)
-        bossHp = 90 + levelNum * 6; // 3배 증가
+        // 일반 모드 보스 (10-90) - 점진적 증가
+        if (levelNum <= 30) {
+          bossHp = 60 + levelNum * 4; // 초반 보스 약하게
+        } else {
+          bossHp = 180 + (levelNum - 30) * 5; // 후반 보스 강하게
+        }
       }
       
       enemies.push({
@@ -842,20 +846,25 @@ function PixelClassicShooter() {
       
       if (isInfiniteModeLevel) {
         // 무한 모드: 201레벨부터 시작, 점진적으로 증가
-        // 201레벨: 1 HP, 250레벨: 60 HP, 300레벨: 120 HP...
-        baseEnemyHP = 1 + (levelNum - 201) * 1.2;
-        maxEnemies = Math.min(25, 15 + Math.floor((levelNum - 200) / 10)); // 최대 25마리까지
+        baseEnemyHP = 1 + (levelNum - 201) * 1.0; // 증가율 감소 (1.2 -> 1.0)
+        maxEnemies = Math.min(20, 12 + Math.floor((levelNum - 200) / 10)); // 최대 20마리로 감소
       } else if (isPhoenixStage) {
         // 피닉스 스테이지 (101-200)
-        baseEnemyHP = 15 + (levelNum - 100) * 1.2;
-        maxEnemies = 20;
+        baseEnemyHP = 12 + (levelNum - 100) * 1.0; // 초기 체력 감소, 증가율 감소
+        maxEnemies = 15; // 20 -> 15
       } else {
-        // 일반 모드 (1-100)
-        baseEnemyHP = 1 + (levelNum - 1) * 0.25;
-        maxEnemies = 10;
+        // 일반 모드 (1-100) - 초반 쉽게, 후반 어렵게
+        if (levelNum <= 10) {
+          baseEnemyHP = 0.5 + (levelNum - 1) * 0.15; // 1-10레벨: 매우 쉬움
+        } else if (levelNum <= 30) {
+          baseEnemyHP = 2 + (levelNum - 10) * 0.2; // 11-30레벨: 점진적 증가
+        } else {
+          baseEnemyHP = 6 + (levelNum - 30) * 0.25; // 31-100레벨: 빠른 증가
+        }
+        maxEnemies = Math.min(12, 6 + Math.floor(levelNum / 10)); // 최대 12마리
       }
       
-      // 적 타입 정의
+      // 적 타입 정의 - 밸런스 조정
       const enemyTypes = [
         { 
           type: 'normal', 
@@ -863,31 +872,31 @@ function PixelClassicShooter() {
           speedMult: 1, 
           damage: 1, 
           color: '#ff0000', 
-          weight: 50 // 50% 확률
+          weight: 55 // 50% -> 55%
         },
         { 
           type: 'tank', 
-          hpMult: 3, 
-          speedMult: 0.5, 
+          hpMult: 2.5, // 3 -> 2.5 (너무 단단함)
+          speedMult: 0.6, // 0.5 -> 0.6 (너무 느림)
           damage: 1, 
           color: '#00ff00', 
-          weight: 20 // 20% 확률
+          weight: 20
         },
         { 
           type: 'fast', 
-          hpMult: 0.7, 
-          speedMult: 2, 
+          hpMult: 0.6, // 0.7 -> 0.6 (조금 더 약하게)
+          speedMult: 2.2, // 2 -> 2.2 (조금 더 빠르게)
           damage: 1, 
           color: '#00ffff', 
-          weight: 20 // 20% 확률
+          weight: 18 // 20% -> 18%
         },
         { 
           type: 'heavy', 
-          hpMult: 1.5, 
+          hpMult: 1.3, // 1.5 -> 1.3 (너무 강함)
           speedMult: 0.8, 
           damage: 2, 
           color: '#ff00ff', 
-          weight: 10 // 10% 확률
+          weight: 7 // 10% -> 7% (출현 빈도 감소)
         }
       ];
       
@@ -1030,37 +1039,45 @@ function PixelClassicShooter() {
     setRunning(true);
     runningRef.current = true;
 
+    // 기본 업그레이드 - 밸런스 조정
     if (type === "speed") {
-      setPlayerStats((p) => { const nv = { ...p, moveSpeed: p.moveSpeed + 10 }; playerStatsRef.current = nv; return nv; });
+      setPlayerStats((p) => { const nv = { ...p, moveSpeed: p.moveSpeed + 12 }; playerStatsRef.current = nv; return nv; }); // 10 -> 12
     }
     if (type === "fire") {
-      setPlayerStats((p) => { const nv = { ...p, shootCooldown: Math.max(0.03, p.shootCooldown - 0.05) }; playerStatsRef.current = nv; return nv; });
+      setPlayerStats((p) => { const nv = { ...p, shootCooldown: Math.max(0.05, p.shootCooldown - 0.04) }; playerStatsRef.current = nv; return nv; }); // 0.03 -> 0.05
     }
     if (type === "life") {
-      setLives((l) => { const nv = l + 1; livesRef.current = nv; return nv; });
+      setLives((l) => { const nv = l + 2; livesRef.current = nv; return nv; }); // 1 -> 2 (더 가치있게)
     }
 
-    if (type === "attackPower") { setPlayerStats((p) => ({ ...p, attackPower: p.attackPower + 1 }));
+    if (type === "attackPower") { 
+      setPlayerStats((p) => { 
+        const nv = { ...p, attackPower: p.attackPower + 1.5 }; // 1 -> 1.5
+        playerStatsRef.current = nv; 
+        return nv; 
+      });
     }
     if (type === "skillCooldown") {
       setPlayerStats((p) => {
-        const nv = { ...p, skillCooldownReduction: (p.skillCooldownReduction || 0) + 1 };
+        const nv = { ...p, skillCooldownReduction: (p.skillCooldownReduction || 0) + 1.5 }; // 1 -> 1.5
         playerStatsRef.current = nv;
         return nv;
       });
     }
+    
+    // 레어 업그레이드 - 밸런스 조정
     if (type === "ultraSpeed") {
-      setPlayerStats((p) => { const nv = { ...p, moveSpeed: p.moveSpeed + 30 }; playerStatsRef.current = nv; return nv; });
+      setPlayerStats((p) => { const nv = { ...p, moveSpeed: p.moveSpeed + 25 }; playerStatsRef.current = nv; return nv; }); // 30 -> 25 (너무 빠름)
     }
     if (type === "ultraFire") {
-      setPlayerStats((p) => { const nv = { ...p, shootCooldown: Math.max(0.03, p.shootCooldown - 0.15) }; playerStatsRef.current = nv; return nv; });
+      setPlayerStats((p) => { const nv = { ...p, shootCooldown: Math.max(0.05, p.shootCooldown - 0.12) }; playerStatsRef.current = nv; return nv; }); // 0.03 -> 0.05
     }
     if (type === "shield") {
-      setPlayerStats((p) => { const nv = { ...p, shield: p.shield + 3  }; playerStatsRef.current = nv; return nv; });
+      setPlayerStats((p) => { const nv = { ...p, shield: p.shield + 2 }; playerStatsRef.current = nv; return nv; }); // 3 -> 2
     }
     if (type === "bulletSpeed") {
       setPlayerStats((p) => { 
-        const nv = { ...p, bulletSpeed: (p.bulletSpeed || 120) + 50 }; 
+        const nv = { ...p, bulletSpeed: (p.bulletSpeed || 120) + 40 }; // 50 -> 40
         playerStatsRef.current = nv; 
         return nv; 
       });
@@ -1068,14 +1085,14 @@ function PixelClassicShooter() {
     
     if (type === "megaAttack") {
       setPlayerStats((p) => {
-        const nv = { ...p, attackPower: (p.attackPower || 1) + 3 };
+        const nv = { ...p, attackPower: (p.attackPower || 1) + 2.5 }; // 3 -> 2.5
         playerStatsRef.current = nv;
         return nv;
       });
     }
     if (type === "superShield") {
       setPlayerStats((p) => {
-        const nv = { ...p, shield: (p.shield || 0) + 5 };
+        const nv = { ...p, shield: (p.shield || 0) + 3 }; // 5 -> 3
         playerStatsRef.current = nv;
         return nv;
       });
@@ -1090,36 +1107,51 @@ function PixelClassicShooter() {
       }
     }
     
-    // 보스 스킬 업그레이드
+    // 보스 스킬 업그레이드 - 밸런스 조정
     if (type === "playerTripleShot") {
       // 트리플샷 스택 시 공격력 증가
       if (!playerStatsRef.current.tripleShot) {
         playerStatsRef.current.tripleShot = true;
         // 첫 획득 시 공격력도 증가
         setPlayerStats((p) => {
-          const nv = { ...p, attackPower: (p.attackPower || 1) + 2 };
+          const nv = { ...p, attackPower: (p.attackPower || 1) + 1.5 }; // 2 -> 1.5
           playerStatsRef.current = nv;
           return nv;
         });
       } else {
         // 이미 획득했으면 공격력만 증가
         setPlayerStats((p) => {
-          const nv = { ...p, attackPower: (p.attackPower || 1) + 3 };
+          const nv = { ...p, attackPower: (p.attackPower || 1) + 2 }; // 3 -> 2
           playerStatsRef.current = nv;
           return nv;
         });
       }
     }
     if (type === "playerRapidFire") {
-      setPlayerStats(p => {
-        const nv = { 
-          ...p, 
-          shootCooldown: Math.max(0.01, p.shootCooldown * 0.5),
-          attackPower: (p.attackPower || 1) + 2
-        };
-        playerStatsRef.current = nv;
-        return nv;
-      });
+      // Rapid Fire 버스트 능력으로 변경
+      if (!playerStatsRef.current.hasRapidFire) {
+        playerStatsRef.current.hasRapidFire = true;
+        playerStatsRef.current.rapidFireLevel = 1;
+        setPlayerStats(p => {
+          const nv = { 
+            ...p, 
+            attackPower: (p.attackPower || 1) + 1 // 공격력 소폭 증가
+          };
+          playerStatsRef.current = nv;
+          return nv;
+        });
+      } else {
+        // 중복 획득 시 확률 증가
+        playerStatsRef.current.rapidFireLevel = (playerStatsRef.current.rapidFireLevel || 1) + 1;
+        setPlayerStats(p => {
+          const nv = { 
+            ...p, 
+            attackPower: (p.attackPower || 1) + 0.5
+          };
+          playerStatsRef.current = nv;
+          return nv;
+        });
+      }
     }
     if (type === "playerTeleport") {
       if (!playerStatsRef.current.canTeleport) {
@@ -1128,14 +1160,14 @@ function PixelClassicShooter() {
         // 순간이동 획득 시 스텔스 능력 추가 (2초간 무적)
         playerStatsRef.current.teleportStealthDuration = 2;
         setPlayerStats((p) => {
-          const nv = { ...p, moveSpeed: p.moveSpeed + 30, shield: p.shield + 2 };
+          const nv = { ...p, moveSpeed: p.moveSpeed + 20, shield: p.shield + 1 }; // 30 -> 20, 2 -> 1
           playerStatsRef.current = nv;
           return nv;
         });
       } else {
         // 텔레포트 강화 시 쿨다운 감소 + 이동 속도 증가
         setPlayerStats((p) => {
-          const nv = { ...p, moveSpeed: p.moveSpeed + 30, attackPower: (p.attackPower || 1) + 2 };
+          const nv = { ...p, moveSpeed: p.moveSpeed + 20, attackPower: (p.attackPower || 1) + 1.5 }; // 30 -> 20, 2 -> 1.5
           playerStatsRef.current = nv;
           return nv;
         });
@@ -1145,11 +1177,11 @@ function PixelClassicShooter() {
       if (!playerStatsRef.current.regenEnabled) {
         playerStatsRef.current.regenEnabled = true;
         playerStatsRef.current.regenLevel = 1;
-        // 2초마다 체력 회복 (더 빠름)
+        // 2초마다 체력 회복
         setInterval(() => {
           if (playerStatsRef.current.regenEnabled) {
-            const regenAmount = (playerStatsRef.current.regenLevel || 1) * 2;
-            const maxLives = 15 + (playerStatsRef.current.regenLevel || 1) * 5;
+            const regenAmount = (playerStatsRef.current.regenLevel || 1) * 1.5; // 2 -> 1.5
+            const maxLives = 15 + (playerStatsRef.current.regenLevel || 1) * 3; // 5 -> 3
             if (livesRef.current < maxLives) {
               setLives(l => {
                 const nv = Math.min(maxLives, l + regenAmount);
@@ -1159,17 +1191,17 @@ function PixelClassicShooter() {
             }
           }
         }, 2000);
-        // 즉시 체력 +5
+        // 즉시 체력 +3
         setLives(l => {
-          const nv = l + 5;
+          const nv = l + 3; // 5 -> 3
           livesRef.current = nv;
           return nv;
         });
       } else {
         // 리젠 레벨 증가 + 즉시 체력 회복
-        playerStatsRef.current.regenLevel = (playerStatsRef.current.regenLevel || 1) + 2;
+        playerStatsRef.current.regenLevel = (playerStatsRef.current.regenLevel || 1) + 1.5; // 2 -> 1.5
         setLives(l => {
-          const nv = l + 8;
+          const nv = l + 5; // 8 -> 5
           livesRef.current = nv;
           return nv;
         });
@@ -1181,14 +1213,14 @@ function PixelClassicShooter() {
         playerStatsRef.current.hasLightning = true;
         playerStatsRef.current.lightningLevel = 2;
         setPlayerStats((p) => {
-          const nv = { ...p, attackPower: (p.attackPower || 1) + 3 };
+          const nv = { ...p, attackPower: (p.attackPower || 1) + 2 }; // 3 -> 2
           playerStatsRef.current = nv;
           return nv;
         });
       } else {
-        playerStatsRef.current.lightningLevel = (playerStatsRef.current.lightningLevel || 1) + 2;
+        playerStatsRef.current.lightningLevel = (playerStatsRef.current.lightningLevel || 1) + 1.5; // 2 -> 1.5
         setPlayerStats((p) => {
-          const nv = { ...p, attackPower: (p.attackPower || 1) + 2 };
+          const nv = { ...p, attackPower: (p.attackPower || 1) + 1.5 }; // 2 -> 1.5
           playerStatsRef.current = nv;
           return nv;
         });
@@ -1200,14 +1232,14 @@ function PixelClassicShooter() {
         playerStatsRef.current.hasTimeWarp = true;
         playerStatsRef.current.timeWarpLevel = 2;
         setPlayerStats((p) => {
-          const nv = { ...p, attackPower: (p.attackPower || 1) + 2, shield: p.shield + 1 };
+          const nv = { ...p, attackPower: (p.attackPower || 1) + 1.5, shield: p.shield + 1 }; // 2 -> 1.5
           playerStatsRef.current = nv;
           return nv;
         });
       } else {
-        playerStatsRef.current.timeWarpLevel = (playerStatsRef.current.timeWarpLevel || 1) + 2;
+        playerStatsRef.current.timeWarpLevel = (playerStatsRef.current.timeWarpLevel || 1) + 1.5; // 2 -> 1.5
         setPlayerStats((p) => {
-          const nv = { ...p, attackPower: (p.attackPower || 1) + 2 };
+          const nv = { ...p, attackPower: (p.attackPower || 1) + 1.5 }; // 2 -> 1.5
           playerStatsRef.current = nv;
           return nv;
         });
@@ -1257,7 +1289,7 @@ function PixelClassicShooter() {
         const nv = {
           ...p,
           moveSpeed: p.moveSpeed * 2,
-          shootCooldown: Math.max(0.03, p.shootCooldown * 0.5),
+          shootCooldown: Math.max(0.05, p.shootCooldown * 0.5), // 0.03 -> 0.05
           shield: p.shield + 10,
           attackPower: (p.attackPower || 1) + 10
         };
@@ -2278,14 +2310,15 @@ function PixelClassicShooter() {
         // 기본 발사
         st.bullets.push({ x: p.x + p.w / 2 - 1, y: p.y - 4, w: 2, h: 4, dy: bulletSpeed });
 
-        // 대각선 공격이 활성화된 경우 레벨에 따라 발사 수 증가
+        // 대각선 공격이 활성화된 경우 레벨에 따라 발사 수 증가 (너프됨)
         if (playerStatsRef.current.diagonalShot) {
           const diagLevel = playerStatsRef.current.diagonalShot;
           
-          // 레벨 1: 좌우 대각선 2발 (총 3발)
-          // 레벨 2: 좌우 대각선 각 2발씩 (총 5발)
-          // 레벨 3: 좌우 대각선 각 3발씩 (총 7발)
-          const shotsPerSide = diagLevel;
+          // 레벨당 1발씩만 추가 (기존보다 절반으로 감소)
+          // 레벨 1: 좌우 각 1발 (총 3발)
+          // 레벨 2: 좌우 각 2발 (총 5발) 
+          // 레벨 3: 좌우 각 3발 (총 7발)
+          const shotsPerSide = Math.min(diagLevel, 3); // 최대 3발로 제한
           
           for (let i = 1; i <= shotsPerSide; i++) {
             // 왼쪽 대각선들
@@ -2294,8 +2327,8 @@ function PixelClassicShooter() {
               y: p.y - 4, 
               w: 2, 
               h: 4, 
-              dy: bulletSpeed * 0.83, 
-              dx: -60 * i / shotsPerSide  // 각도 분산
+              dy: bulletSpeed * 0.75, // 0.83 -> 0.75 (더 느리게)
+              dx: -50 * i / shotsPerSide  // -60 -> -50 (각도 감소)
             });
             // 오른쪽 대각선들
             st.bullets.push({ 
@@ -2303,8 +2336,8 @@ function PixelClassicShooter() {
               y: p.y - 4, 
               w: 2, 
               h: 4, 
-              dy: bulletSpeed * 0.83, 
-              dx: 60 * i / shotsPerSide   // 각도 분산
+              dy: bulletSpeed * 0.75, // 0.83 -> 0.75 (더 느리게)
+              dx: 50 * i / shotsPerSide   // 60 -> 50 (각도 감소)
             });
           }
         }
@@ -2377,6 +2410,28 @@ function PixelClassicShooter() {
               color: "#ffffff",
               isStar: true
             });
+          }
+        }
+
+        // Rapid Fire 버스트 (낮은 확률로 5발 빠르게 발사)
+        const rapidFireLevel = playerStatsRef.current.rapidFireLevel || 0;
+        if (playerStatsRef.current.hasRapidFire && skillChance < 0.12 * rapidFireLevel) { // 12% x 레벨
+          // 5발을 0.05초 간격으로 발사하도록 예약
+          for (let i = 1; i <= 5; i++) {
+            setTimeout(() => {
+              if (runningRef.current && !gameOverRef.current) {
+                const currentP = gameRef.current.player;
+                playShootSound();
+                gameRef.current.bullets.push({ 
+                  x: currentP.x + currentP.w / 2 - 1, 
+                  y: currentP.y - 4, 
+                  w: 2, 
+                  h: 5, 
+                  dy: bulletSpeed * 1.2, // 더 빠르게
+                  color: "#ff6600" // 주황색으로 구분
+                });
+              }
+            }, i * 50); // 0.05초 간격
           }
         }
 
@@ -2478,7 +2533,7 @@ function PixelClassicShooter() {
 
       // normal enemy shooting timer - 타입별로 다른 공격 속도
       const now = performance.now();
-      if (st.enemies.length > 0 && now - (st.lastEnemyShotTime || 0) > 700) {
+      if (st.enemies.length > 0 && now - (st.lastEnemyShotTime || 0) > 900) { // 700 -> 900 (더 느리게)
         const nonBossEnemies = st.enemies.filter(e => !e.boss);
         if (nonBossEnemies.length > 0) {
           const shooter = nonBossEnemies[Math.floor(Math.random() * nonBossEnemies.length)];
@@ -2498,7 +2553,7 @@ function PixelClassicShooter() {
       }
       
       // 빠른 적들은 더 자주 공격 (추가 발사)
-      if (st.enemies.length > 0 && now - (st.lastFastEnemyShotTime || 0) > 400) {
+      if (st.enemies.length > 0 && now - (st.lastFastEnemyShotTime || 0) > 600) { // 400 -> 600 (너무 빠름)
         const fastEnemies = st.enemies.filter(e => !e.boss && e.enemyType === 'fast');
         if (fastEnemies.length > 0) {
           const shooter = fastEnemies[Math.floor(Math.random() * fastEnemies.length)];
@@ -2517,7 +2572,7 @@ function PixelClassicShooter() {
       }
       
       // 강력한 적들은 가끔 강력한 공격
-      if (st.enemies.length > 0 && now - (st.lastHeavyEnemyShotTime || 0) > 1500) {
+      if (st.enemies.length > 0 && now - (st.lastHeavyEnemyShotTime || 0) > 2000) { // 1500 -> 2000 (덜 자주)
         const heavyEnemies = st.enemies.filter(e => !e.boss && e.enemyType === 'heavy');
         if (heavyEnemies.length > 0) {
           const shooter = heavyEnemies[Math.floor(Math.random() * heavyEnemies.length)];
