@@ -3422,9 +3422,9 @@ function PixelClassicShooter() {
   function startGameAtLevel(selectedLevel) {
     const aircraft = selectedAircraftRef.current || aircraftTypes[0];
     
-    // 101-200레벨은 피닉스나 갓모드만 시작 가능
-    if (selectedLevel > 100 && aircraft.id !== 'phoenix' && aircraft.id !== 'godmode') {
-      alert('⚠️ 101레벨 이상은 PHOENIX X-99 또는 DIVINE DESTROYER만 플레이할 수 있습니다!');
+    // 101-200 레벨은 피닉스나 갓모드만 시작 가능
+    if (selectedLevel > 100 && selectedLevel <= 200 && aircraft.id !== 'phoenix' && aircraft.id !== 'godmode') {
+      alert('⚠️ 101-200 레벨은 PHOENIX X-99 또는 DIVINE DESTROYER만 플레이할 수 있습니다!');
       return;
     }
     
