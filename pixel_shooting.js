@@ -473,8 +473,8 @@ const aircraftTypes = [
     color: "#ffff66",
     stats: {
       lives: 8,
-      moveSpeed: 60,
-      shootCooldown: 0.15,
+      moveSpeed: 55,
+      shootCooldown: 0.18,
       shield: 0,
       attackPower: 1
     }
@@ -2067,12 +2067,12 @@ function PixelClassicShooter() {
         console.log("스킬 발동:", aircraftId);
         
         if (aircraftId === "fighter" || aircraftId === "glasscannon") {
-          // Missile Barrage: 전방 5발 미사일 발사
+          // Missile Barrage: 전방 7발 미사일 발사 (5 -> 7)
           playMissileSound(); // 사운드 재생
           console.log("Fighter 미사일 발사!");
-          for (let i = 0; i < 5; i++) {
+          for (let i = 0; i < 7; i++) {
             st.bullets.push({ 
-              x: p.x + p.w / 2 - 1 + (i - 2) * 4, 
+              x: p.x + p.w / 2 - 1 + (i - 3) * 3.5, 
               y: p.y - 4, 
               w: 3, 
               h: 6, 
@@ -2085,18 +2085,18 @@ function PixelClassicShooter() {
           playerStatsRef.current.skillCooldown = Math.max(2, baseCooldown - reduction);
         } 
         else if (aircraftId === "bomber") {
-          // Carpet Bomb: 광역 폭격 (전방에 폭탄 투하)
+          // Carpet Bomb: 광역 폭격 (전방에 폭탄 5개 투하, 폭발 범위 증가)
           playBombSound(); // 사운드 재생
           console.log("Bomber 폭탄 발사!");
-          for (let i = 0; i < 3; i++) {
+          for (let i = 0; i < 5; i++) {
             st.bullets.push({ 
-              x: p.x + p.w / 2 - 2 + (i - 1) * 8, 
+              x: p.x + p.w / 2 - 2 + (i - 2) * 6, 
               y: p.y - 10, 
               w: 4, 
               h: 4, 
               dy: -100,
               bomb: true,
-              bombRadius: 25
+              bombRadius: 35 // 25 -> 35
             });
           }
           const baseCooldown = 10;
@@ -2104,11 +2104,11 @@ function PixelClassicShooter() {
           playerStatsRef.current.skillCooldown = Math.max(2, baseCooldown - reduction);
         }
         else if (aircraftId === "stealth") {
-          // Stealth Mode: 3초간 무적 + 고속이동
+          // Stealth Mode: 5초간 무적 + 고속이동 (3초 -> 5초)
           playStealthSound(); // 사운드 재생
           console.log("Stealth 모드 활성화!");
           playerStatsRef.current.stealthActive = true;
-          playerStatsRef.current.stealthDuration = 3;
+          playerStatsRef.current.stealthDuration = 5;
           playerStatsRef.current.originalSpeed = playerStatsRef.current.moveSpeed;
           playerStatsRef.current.moveSpeed = playerStatsRef.current.moveSpeed * 2;
           const baseCooldown = 12;
@@ -2134,10 +2134,10 @@ function PixelClassicShooter() {
           playerStatsRef.current.skillCooldown = Math.max(2, baseCooldown - reduction);
         }
         else if (aircraftId === "tank") {
-          // Shield Burst: 전방위 보호막 발사
+          // Shield Burst: 전방위 보호막 발사 (18발, 20도 간격)
           playShieldSound(); // 사운드 재생
           console.log("Tank 전방위 총알 발사!");
-          for (let angle = 0; angle < 360; angle += 30) {
+          for (let angle = 0; angle < 360; angle += 20) {
             const rad = angle * Math.PI / 180;
             st.bullets.push({ 
               x: p.x + p.w / 2, 
@@ -3817,7 +3817,17 @@ function PixelClassicShooter() {
               leaderboardFilter === 'all' || record.aircraft === aircraftTypes.find(a => a.id === leaderboardFilter)?.name
             );
             
-            if (filteredData.length === 0) {
+            // 중복된 이름이 있으면 최고 점수만 표시
+            const uniquePlayerData = {};
+            filteredData.forEach(record => {
+              const name = record.name;
+              if (!uniquePlayerData[name] || uniquePlayerData[name].level < record.level) {
+                uniquePlayerData[name] = record;
+              }
+            });
+            const deduplicatedData = Object.values(uniquePlayerData).sort((a, b) => b.level - a.level);
+            
+            if (deduplicatedData.length === 0) {
               return (
                 <div style={{ 
                   textAlign: "center", 
@@ -3851,7 +3861,7 @@ function PixelClassicShooter() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredData.map((record, idx) => {
+                  {deduplicatedData.map((record, idx) => {
                     const isCurrentPlayer = record.name === playerName;
                     const rankColor = idx === 0 ? "#FFD700" : idx === 1 ? "#C0C0C0" : idx === 2 ? "#CD7F32" : "#fff";
                     const rankIcon = idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : "";
